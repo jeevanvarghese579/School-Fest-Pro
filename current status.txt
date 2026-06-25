@@ -1,0 +1,3 @@
+build- ok
+online-testing (address is of ascention manager)
+offline-pending

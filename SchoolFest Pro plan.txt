@@ -1,0 +1,685 @@
+1.0
+
+create a web app for conducting  school arts and sports
+modern ui required
+All data should be saved in browser local storage unless backend is added later
+
+app name is SchoolFest Pro
+in aobuot section, there should be- developed by: Jeevan Varghese, St. Gemmas GHSS Malappuram, jeevanvarghese579@gmail.com (clicking on email id should copy it,  email id should not be underlined, developed name should be made more prmoinant)
+
+The app should have a sidebar navigation with: Registration Portal, Reports Dashboard, Results Console, About
+
+
+The app should contain 3 main interfaces:
+
+Registration Portal
+Reports Dashboard
+Results Console
+
+the registration portal should have button to see all student details wher we can enter student names, roll number,class, age category (LP Mini, LP Kiddies, Kiddies, sub junior, junior, senior, super senior ), register number and house for which the student completes. this can be exported and imported as csv file
+
+there should also be button to enter all items for participation. it should have whether stage item or off stage item calssificatoin. stage in which this item occurs can also be added. this can also be exported and imported
+
+in  the regitration portal, a third button saying individual items participation entry to select participants items should be there. this button opens a page where there the a large table with names of students with class and roll number as list on left side, a top row with full of items names. user can tick on boxes for each students below the item name to accept their entry. this can be exoprted and imported as csv file
+
+a fourth bututon for group items participation entry. this opens an interface where group item can be manually created and students can be added manually. this while group participation can be seperatly exported and imoprted. group items do not count toward the student’s total item limit
+ 
+a fifth button saying general settings should be also present. it accepts name of school, name of programme. it also will have setting to select total number of items a student can participate in, which will limit the number of ticks a student can do to partiicpate in items. number of stages and stage name can be set. how many days the programme should be coducted can be set.
+points for individual items and group items, stageand offstage are set here sperately
+User can create, edit, and delete house names and colors.
+
+now in output intreface
+buttons for creating reports house wise, class wise and studenwise should be present clicking should provide a pdf with these details. the number of pages in pdf can be increased, but matter should be optimized to save paper
+
+partipant card button that creates partipant cards to be given to each student containing their names, resgiter numbre, theri items of participation, stage and time if availble. in a a4 sheet, the number of participant card that can be coolaged can be set by the user
+
+button to generate list to stage in pdf
+
+group list, their stage and time in pdf geenration button
+
+items stagewuse and daywise list
+
+a button to create schedule, which takes account of items for participation, number of participants, time for each items, numbe of days, number of stages and items conducted there to create a schedule for coducting the programme. Schedule generation should automatically allocate:
+Day
+Stage
+Start time
+End time
+based on:
+number of participants
+duration per item
+number of stages
+available programme days
+Avoid student time clashes whenever possible.
+
+
+
+the results interface should show each items and their participants as a long list. right to the participants, we can enter thier marks and positions. app calculates position from marks.If marks are equal, tied positions should be handled correctly.
+
+the top of thsi interfacw shoudl have a house points box. it shows the point acquired by each houses. as a student acquires positions, the points for houses should be changed accordingly
+
+a buttom to show results should also be provided. this gives a new page with all the 1st 2nd and 3rd positoin for each items. it can be exported as pdf as well
+
+
+House points should automatically calculate from positions using settings configured in General Settings.
+All tables should support search, filtering, and sorting.
+PDFs should be properly paginated and optimized for A4 printing.
+all PDFs should have school name, programme name, date, and clean print-friendly formatting
+Imported CSV should validate columns and show errors for missing/duplicate records
+
+
+2.0.1
+
+reset button
+backup reset buttons
+
+
+need to put these changes to this web app
+change version to 2.0.2
+
+only export button present in indivual participatio nentry and group participatio entry. i need import function too
+in group items, tag one student as leader and his name shoul dbe first in group
+a default House with name "Red House" should be present after reset. user can delete this house if required
+DELETE DALOGUE BOX SHOULD match the ui and not browser popup
+EDIT BUTTON for student details not working. fix it
+while importing students, if there is no house already build, create that house anew
+option to create a new house while add a new student
+IN INDIVIDUAL PARTICIPATIO ENTRY, THE ITEMS PRESNT IN TOP ROW SHOULD BE TEXTED VERTICAL SO THAT IT CAN BE READ COMPLETELY
+the point configuration should be for individual and group items only. stage / offfstage can be removed
+width of app can be increased to fill laptopscreen so that more can be seen in individual participation entry
+IN INDIVIDUAL PARTICIPATIO ENTRY, when the list is scrolled down, even then the items names presnt  at top should always be visible
+the house names are getting automatically erased. fix it.
+while generating classwise reports, include only names of participating students, students who are not participating in anything should be omitted
+the particpatio cards geeneratedd are overlapping details. wrap the text to stay inside each cards. 
+the particpatio cards could be 8 numbers or 16 numbers collageed togather, which the user can select. these collages should be equally divided for an A4 sized sheet. you can redce the font size to accomodate all details inside the card itself.
+the particpatio cards shoudl have title Participation Card along with school anem ad programe name
+in schedule generation and export, there should be a break time inbetween items. it can be set in general settings of registratin portal and default set to 7 minutes
+in general settings, next to programme days, there should be a setting to set start time and end time of a day. schedule generation and export should take acount of this time as well.
+the result console doesnt show its participants, fix it. put a search bar in results console
+if no one participates for an item, avoid that in results console for marks entry
+in result console, exporting pdf should give item name, and its first 3 positions as a list
+
+
+
+2.0.3
+the colour in houses doesnt need to be exported. only the name of house needs to be exported. if i import a csv with a new house name, that house should be automatically created in app
+duration of items is not imported correctly, fix it
+when clicking on editing an item, the page should scroll to top automatically
+house wise reports for students are not showing group items selected 
+while creatimg stagewise list, if there are no participants fir an item, ignore that item from pdf report
+the duration given for each items is the time required by one candidate to complete his performace. so when generating schedule, take account of number of participants and time time required for each perfomrance to calculate start time and end time. also show number of  particpants for each item in scheule 
+in schwdule, show time in 12 hour format
+in reports dashboard, introduce Itemwise report that shows all items and its participants. if an item doesnt have any participants, avoid it. pdf style should be similar to other reports
+
+in reports dashboard
+Add a new section in the app called “Generate Score Sheets”.
+
+This section should generate printable A4 PDF score sheets for each competition item.
+
+Requirements:
+
+1. Add a button/menu item named “Generate Score Sheets” in the Reports Dashboard.
+
+2. When clicked, show options:
+   - Select item category: All / Stage / Off Stage
+   - Select age category: All or specific category
+   - Select items: All or selected items
+   - Number of score sheets per A4 page: 1, 2, 3 or 4
+   - Include consolidated score sheet: Yes/No
+
+3. Generate score sheets only for items that have registered participants.
+   - If an item has no participants, do not generate a score sheet for that item.
+
+4. Each score sheet should contain:
+   - Title: “Score Sheet”
+   - Item name from the app data
+   - “Score out of: __________”
+   - Table columns:
+     SL.NO
+     CHEST NO / REGISTER NO
+     Score columns: a, b, c, d, e, f
+     Total
+   - Rows should match the number of participants for that item.
+   - Bottom fields:
+     Name: __________________
+     Signature: ______________
+
+5. For each item, also generate a consolidated score sheet if enabled.
+   It should contain:
+   - Programme name
+   - Title: “Consolidated Score”
+   - Item name
+   - Table columns:
+     SL.NO
+     ADMIN.NO / REGISTER NO
+     CHEST.NO
+     MAX MARK
+     JUDGE 1
+     JUDGE 2
+     JUDGE 3
+     JUDGE 4
+     JUDGE 5
+     TOTAL
+     GRADE
+     RANK
+
+6. The PDF layout should look similar to the uploaded sample image:
+   - Blue table borders
+   - Compact print-friendly layout
+   - Multiple score sheets can be arranged side-by-side on one A4 page
+   - Use landscape A4 when 3 score sheets are placed on one page
+   - Use portrait or landscape as needed for consolidated sheets
+   - Optimize spacing to save paper
+
+7. The item name in every score sheet must come from the item list entered in the app.
+
+8. Use existing student registration and participation data.
+   - Individual item participants should appear in individual score sheets.
+   - Group item participants/groups should also have score sheets where applicable.
+
+9. Add PDF export button:
+   “Download Score Sheets PDF”
+
+10. PDF should include school name, programme name, date, and page numbers where appropriate.
+
+
+
+2.0.4 (codex)
+when clicking on edit on a students name, the edit option is on top of Student Details page. so when clicking edit, the page should go top to see the editing box 
+In reports dashboard, Generate Score Sheets should change to 'Download Scoresheets PDF' clicking on the 'Download Scoresheets PDF' button in it should open the connected url link. this URL link can be set by user on general settings present in Registration portal. 
+option to mention sex of student shoiuld be present
+while importing students, if the house is not present in app, create it automatically and add students to their respective houses
+generating itemwise report should show options to whether generate reports by considering age category or not. if age category is considered, then each items should be subdivided based of entered age categories and students should be listed in their appropriate items, that means each item with different ag grouprs will be consderd as differnt items itself. the report wil mtion age cateogry as well
+Schedule Generation & Export should also ask whether age cateogories are considered and if yes, schdules are genereaed such that an item with different categores are treated as different items itself.
+
+2.0.4 (refined for codex using chatgpt)
+ADDITIONAL REQUIREMENTS AND CHANGES
+
+1. Student Editing UX
+
+* In the Student Details page, when the user clicks the "Edit" button for a student, automatically scroll the page to the top where the student edit form is located.
+* The edit form should become visible and focused immediately after clicking Edit.
+* This prevents the user from having to manually scroll up to find the editing section.
+
+2. Scoresheets PDF Link
+
+* In the Reports Dashboard, rename:
+  "Generate Score Sheets"
+  to
+  "Download Scoresheets PDF"
+
+* Clicking this button should NOT generate a PDF inside the application.
+
+* Instead, it should open a user-defined URL in a new browser tab.
+
+* Add a setting in Registration Portal → General Settings:
+  "Scoresheets PDF URL"
+
+* The user can enter any URL.
+
+* When "Download Scoresheets PDF" is clicked, open this configured URL.
+
+3. Student Sex/Gender Field
+
+* Add a new field to student registration:
+  Sex
+
+* Available options:
+
+  * Male
+  * Female
+  * Other
+
+* Include this field in:
+
+  * Student registration
+  * Student editing
+  * CSV export
+  * CSV import
+  * Student reports
+
+4. Automatic House Creation During Student Import
+
+* When importing students from CSV:
+
+  * Check whether the imported house already exists.
+  * If the house does not exist:
+
+    * Automatically create the house.
+    * Add imported students to that house.
+  * Do not reject the import because of missing houses.
+
+5. Item-wise Reports with Age Categories
+
+* When generating Item-wise Reports, provide an option:
+
+  "Consider Age Categories"
+
+  * Yes
+  * No
+
+If "No":
+
+* Generate the report normally.
+* All participants for an item are listed together.
+
+If "Yes":
+
+* Treat the same item in different age categories as separate items.
+
+* Example:
+
+  Malayalam Recitation (Junior)
+  Malayalam Recitation (Senior)
+  Malayalam Recitation (Sub Junior)
+
+  should be considered as three different report sections.
+
+* Participants must appear only in their corresponding age category.
+
+* Report headings must include both:
+
+  * Item Name
+  * Age Category
+
+6. Schedule Generation with Age Categories
+
+* In Schedule Generation & Export, provide an option:
+
+  "Consider Age Categories"
+
+  * Yes
+  * No
+
+If "No":
+
+* Schedule items normally.
+
+If "Yes":
+
+* Treat each Item + Age Category combination as a separate scheduled event.
+
+Example:
+
+* Folk Song (Junior)
+* Folk Song (Senior)
+* Folk Song (Sub Junior)
+
+should be treated as separate schedule entries.
+
+* Schedule generation must:
+
+  * allocate separate time slots
+  * allocate stages independently
+  * include age category in the schedule output
+
+* Generated schedules and exported PDFs must clearly show:
+
+  * Item Name
+  * Age Category
+  * Stage
+  * Day
+  * Time
+
+7. CSV Compatibility
+
+* Update all student import/export templates to include:
+  Sex
+
+* Import validation should continue to check:
+
+  * Required columns
+  * Duplicate Register Numbers
+  * Invalid data
+
+* Missing houses should be automatically created during import.
+
+
+
+2.0.5
+the default Scoresheets PDF URL shuld be "https://drive.google.com/drive/folders/1laKsydueJPWJ0f3ZE6CMGJdb4vGo-Kbm?usp=sharing" which shold be there even after reset
+
+Schedule Generation & Export not working properly. most of the items are missing. 
+
+
+
+chatgpt corrected-->
+
+CHANGE REQUESTS – VERSION 2.0.5
+
+1. Default Scoresheets PDF URL
+
+In Registration Portal → General Settings, the field:
+
+"Scoresheets PDF URL"
+
+must have the following default value:
+
+https://drive.google.com/drive/folders/1laKsydueJPWJ0f3ZE6CMGJdb4vGo-Kbm?usp=sharing
+
+Requirements:
+
+* This default URL must be prefilled when the app is first loaded.
+* If the user has never changed the URL, the default URL should always be used.
+* Performing "Reset Application Data" must NOT remove or change this default URL.
+* After reset, the URL field should still contain the above default URL.
+* The user may still edit and save a different URL if desired.
+
+2. Download Scoresheets PDF Button
+
+The Reports Dashboard contains:
+
+"Download Scoresheets PDF"
+
+Requirements:
+
+* Clicking this button should open the URL configured in General Settings.
+* Open the URL in a new browser tab.
+* If no custom URL exists, automatically use the default URL above.
+
+3. Fix Schedule Generation & Export
+
+Current issue:
+
+* Schedule Generation & Export is missing many items.
+* Not all registered items are appearing in the generated schedule.
+
+Required behaviour:
+
+A. Item Inclusion
+
+* Every item that has at least one participant must be included in schedule generation.
+* No eligible item should be skipped.
+* Items with zero participants may be excluded.
+
+B. Age Category Handling
+When "Consider Age Categories" is enabled:
+
+Treat each Item + Age Category combination as a separate schedule entry.
+
+Example:
+
+* Folk Song (Junior)
+* Folk Song (Senior)
+* Folk Song (Sub Junior)
+
+must generate three separate schedule entries.
+
+All of them must appear in the schedule.
+
+C. Group Items
+
+* Group items must also be included in schedule generation.
+* Group items must not be skipped.
+* Group items should be scheduled using the same stage/day allocation logic.
+
+D. Validation
+Before generating the schedule:
+
+Verify:
+
+* Total items found
+* Items with participants
+* Individual items count
+* Group items count
+
+Display these counts to the user.
+
+E. Debug Information
+Add a Schedule Preview page showing:
+
+* Total items considered
+* Total schedule entries generated
+* Items excluded
+* Reason for exclusion
+
+This will help identify future scheduling issues.
+
+F. Export
+The exported PDF schedule must contain ALL generated schedule entries.
+
+For every entry show:
+
+* Item Name
+* Age Category (if enabled)
+* Stage
+* Day
+* Start Time
+* End Time
+* Number of Participants
+
+No generated schedule item should be missing from the exported PDF.
+
+4. Schedule Generation Reliability
+
+The scheduling algorithm should:
+
+* Process all eligible items before generating output.
+* Never stop early due to conflicts.
+* If a conflict cannot be avoided, still include the item in the schedule and add a remark explaining the conflict.
+* Missing items are not acceptable.
+
+Priority:
+
+1. Include all eligible items.
+2. Avoid clashes where possible.
+3. Report unavoidable clashes in remarks.
+
+5. Correct Time Calculation for Schedule Generation
+
+Fix schedule duration calculation.
+
+Each item must have a configurable field:
+
+"Time required for one performance"
+
+This should be entered in minutes.
+
+During schedule generation, calculate total time required for each item using this formula:
+
+Total Item Duration = Number of Participants × Time Required Per Performance
+
+Examples:
+
+* If an item has 10 participants and each performance takes 5 minutes:
+  Total duration = 10 × 5 = 50 minutes
+
+* If an item has 6 participants and each performance takes 3 minutes:
+  Total duration = 6 × 3 = 18 minutes
+
+Requirements:
+
+* Use the actual number of participants registered for that item.
+* If age categories are considered, calculate duration separately for each Item + Age Category group.
+* If age categories are not considered, calculate duration using the total participants for that item.
+* For group items, use the number of groups, not the number of individual students, when calculating duration.
+* Add optional buffer time per item in General Settings.
+* Final item duration should be:
+
+Final Duration = (Participant Count × Time Per Performance) + Buffer Time
+
+* Schedule start and end times must be calculated using this final duration.
+* Exported schedule PDF must show:
+
+  * Number of participants/groups
+  * Time per performance
+  * Buffer time
+  * Total duration
+  * Start time
+  * End time
+
+Important:
+Do not assign fixed equal duration to all items unless the user has manually set the same time for all items.
+Each item must calculate its own duration based on participant count.
+
+
+
+
+
+2.0.6
+remove "Break Between Items (minutes)" from genral settings.	
+Schedule Generation & Export stage/offstage  handling.
+When generating Schedule, provide an option:
+
+  "Consider  offstage items for schdule gneratin
+
+  * Yes
+  * No
+
+if yes, normal generation of schdule
+
+if no, all  off stage items afre omitted from schduel genration
+introcue my website in app
+
+
+
+chatgpt corretecd-->
+
+CHANGE REQUEST – VERSION 2.0.6
+
+1. Remove Break Between Items Setting
+
+Remove the setting:
+
+"Break Between Items (minutes)"
+
+from Registration Portal → General Settings.
+
+Requirements:
+
+* Remove it from the user interface.
+* Remove it from schedule generation calculations.
+* Existing saved values can be ignored.
+* Schedule generation should not depend on this setting.
+
+2. Schedule Generation – Off Stage Item Handling
+
+When generating schedules, provide a new option:
+
+"Consider Off Stage Items for Schedule Generation"
+
+Options:
+
+* Yes
+* No
+
+Behaviour:
+
+If "Yes":
+
+* Generate the schedule normally.
+* Include both Stage Items and Off Stage Items.
+* Allocate stages, days, and times for all eligible items.
+
+If "No":
+
+* Exclude all Off Stage Items from schedule generation.
+* Only Stage Items should be considered.
+* Off Stage Items should not appear in:
+
+  * Schedule Preview
+  * Generated Schedule
+  * Exported Schedule PDF
+
+Additional Requirements:
+
+* The option should only affect schedule generation.
+
+* Off Stage Items must still remain available in:
+
+  * Registration Portal
+  * Participation Entry
+  * Results Console
+  * Reports Dashboard
+  * Item Reports
+
+* Only the schedule generation process should ignore them.
+
+Schedule Preview should clearly display:
+
+* Total Stage Items Included
+* Total Off Stage Items Included
+* Total Items Scheduled
+
+This helps users verify that the correct items are being considered before generating the final schedule.
+
+
+3. Developer Page Improvements
+
+Update the Developer/About section.
+
+Current Information:
+
+* Developed by: Jeevan Varghese
+* St. Gemma's GHSS Malappuram
+* [jeevanvarghese579@gmail.com](mailto:jeevanvarghese579@gmail.com)
+
+Add the following website:
+
+Website:
+https://itsjeevanvarghese.web.app/
+
+Requirements:
+
+* Display the website as a clickable link.
+* Open the website in a new browser tab.
+* Use a professional appearance.
+* The website link should be visually separated from the email address.
+
+Add the following message:
+
+"For more school-related software and educational tools, please visit:
+https://itsjeevanvarghese.web.app/"
+
+Suggested Layout:
+
+Developed By
+Jeevan Varghese
+
+St. Gemma's GHSS Malappuram
+
+Email:
+[jeevanvarghese579@gmail.com](mailto:jeevanvarghese579@gmail.com)
+(Click to copy)
+
+Website:
+https://itsjeevanvarghese.web.app/
+(Open in new tab)
+
+For more school-related software and educational tools, please visit the website above.
+
+Additional Requirements:
+
+* Keep "Jeevan Varghese" visually prominent.
+* Email should continue to copy to clipboard when clicked.
+* Email should not appear underlined.
+* Website link should be clearly visible and clickable.
+* The Developer/About page should have a clean and professional design.
+
+
+
+
+
+
+
+
+
+
+
+CHANGE REQUEST – VERSION 2.0.7
+in the view results - final results section, show marks as well as points got for the team
+in results pdf also show points and marks
+remove ID from pdf export of results
+add the uploaded icon for app. this icon should be seen in about page and left side panel replacing the current generic icons
+
+
+
+
+CHANGE REQUEST – VERSION 2.0.8 (VSC Cline)
+In result console, a button to export results as csv for printing option should be present next to export pdf and VIEW RESULTS BUTTON
+it exports 
+Student Name,	Item,	Reg No,	Class,	Position, Grade, Marks and House in  csv format in this order itself with these exact headings
+. for group items, instead of group name, entire participants names are given in csv. the group result is considrered as the individual memebrs result.
+
+
+
+CHANGE REQUEST – VERSION 2.0.9

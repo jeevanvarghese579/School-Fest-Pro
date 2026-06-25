@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.vertical-item-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  max-height: 7.5rem;
+  line-height: 1.1;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
