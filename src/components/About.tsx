@@ -1,7 +1,6 @@
-import { resetAllDataEverywhere } from '../utils/storage';
+import { getAllLocalData, resetAllDataEverywhere, restoreAllLocalData } from '../utils/storage';
 import { useState } from 'react';
 import { Copy, Check, Trash2, Download, Upload, AlertCircle, ExternalLink, Mail, Globe } from 'lucide-react';
-import { DEFAULT_HOUSE, DEFAULT_SCORESHEETS_PDF_URL } from '../utils/storage';
 import appIcon from '../assets/app-icon.svg';
 
 const DEVELOPER_EMAIL = 'jeevanvarghese579@gmail.com';
@@ -20,29 +19,15 @@ function About() {
   
 const handleReset = async () => {
   await resetAllDataEverywhere();
-
-  localStorage.setItem('schoolfest_houses', JSON.stringify([DEFAULT_HOUSE]));
-  localStorage.setItem(
-    'schoolfest_settings',
-    JSON.stringify({ scoresheetsPdfUrl: DEFAULT_SCORESHEETS_PDF_URL })
-  );
-
   setShowResetConfirm(false);
-  alert('All data has been reset. Please wait a while to sync with cloud');
+  alert('This workspace has been reset. Other users and offline profiles were not changed.');
   window.location.reload();
 };
 
 
   const handleBackup = () => {
     const backup = {
-      students: JSON.parse(localStorage.getItem('schoolfest_students') || '[]'),
-      houses: JSON.parse(localStorage.getItem('schoolfest_houses') || '[]'),
-      items: JSON.parse(localStorage.getItem('schoolfest_items') || '[]'),
-      participations: JSON.parse(localStorage.getItem('schoolfest_individual_participations') || '[]'),
-      groupItems: JSON.parse(localStorage.getItem('schoolfest_group_items') || '[]'),
-      settings: JSON.parse(localStorage.getItem('schoolfest_settings') || '{}'),
-      results: JSON.parse(localStorage.getItem('schoolfest_results') || '[]'),
-      schedule: JSON.parse(localStorage.getItem('schoolfest_schedule') || '[]'),
+      ...getAllLocalData(),
       backupDate: new Date().toISOString(),
       version: '2.0.7',
     };
@@ -60,7 +45,7 @@ const handleReset = async () => {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const backup = JSON.parse(e.target?.result as string);
 
@@ -69,15 +54,7 @@ const handleReset = async () => {
           return;
         }
 
-        // Restore all data
-        if (backup.students) localStorage.setItem('schoolfest_students', JSON.stringify(backup.students));
-        if (backup.houses) localStorage.setItem('schoolfest_houses', JSON.stringify(backup.houses));
-        if (backup.items) localStorage.setItem('schoolfest_items', JSON.stringify(backup.items));
-        if (backup.participations) localStorage.setItem('schoolfest_individual_participations', JSON.stringify(backup.participations));
-        if (backup.groupItems) localStorage.setItem('schoolfest_group_items', JSON.stringify(backup.groupItems));
-        if (backup.settings) localStorage.setItem('schoolfest_settings', JSON.stringify(backup.settings));
-        if (backup.results) localStorage.setItem('schoolfest_results', JSON.stringify(backup.results));
-        if (backup.schedule) localStorage.setItem('schoolfest_schedule', JSON.stringify(backup.schedule));
+        await restoreAllLocalData(backup);
 
         alert('Backup restored successfully! Please refresh the page.');
       } catch {

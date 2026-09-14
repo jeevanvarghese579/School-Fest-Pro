@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, deleteDoc  } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { Student, House, Item, IndividualParticipation, GroupItem, Settings, Result, ScheduleItem } from '../types';
 
@@ -16,7 +16,131 @@ const STORAGE_KEYS = {
   SCHEDULE: 'schoolfest_schedule',
 };
 
+type WorkspaceData = ReturnType<typeof getAllLocalData>;
+type WorkspaceRecord = { scope: string; data: Partial<WorkspaceData>; updatedAt: string };
+
+const LOCAL_DATABASE = 'schoolfest-pro-local';
+const LOCAL_STORE = 'workspaces';
+const LOCAL_PROFILE_KEY = 'schoolfest_local_profile_id';
+const FALLBACK_PREFIX = 'schoolfest_workspace_fallback:';
+const CLOUD_ROOT = 'schoolFestProUsers';
 const CLOUD_DOC_PATH = 'main';
+
+let activeScope = '';
+let workspaceData: Partial<WorkspaceData> = {};
+let cloudAccessApproved = false;
+let cloudSyncTimer: ReturnType<typeof setTimeout> | null = null;
+let persistenceQueue = Promise.resolve();
+
+function openLocalDatabase(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(LOCAL_DATABASE, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(LOCAL_STORE)) {
+        request.result.createObjectStore(LOCAL_STORE, { keyPath: 'scope' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function readWorkspace(scope: string): Promise<WorkspaceRecord | null> {
+  try {
+    const database = await openLocalDatabase();
+    return await new Promise((resolve, reject) => {
+      const transaction = database.transaction(LOCAL_STORE, 'readonly');
+      const request = transaction.objectStore(LOCAL_STORE).get(scope);
+      request.onsuccess = () => resolve((request.result as WorkspaceRecord | undefined) || null);
+      request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => database.close();
+    });
+  } catch (error) {
+    console.warn('IndexedDB read failed; using the scoped local fallback.', error);
+    const fallback = localStorage.getItem(`${FALLBACK_PREFIX}${scope}`);
+    return fallback ? JSON.parse(fallback) as WorkspaceRecord : null;
+  }
+}
+
+function writeWorkspace(): Promise<void> {
+  if (!activeScope) return Promise.resolve();
+  const record: WorkspaceRecord = {
+    scope: activeScope,
+    data: getAllLocalData(),
+    updatedAt: new Date().toISOString(),
+  };
+  persistenceQueue = persistenceQueue.then(async () => {
+    try {
+      const database = await openLocalDatabase();
+      await new Promise<void>((resolve, reject) => {
+        const transaction = database.transaction(LOCAL_STORE, 'readwrite');
+        transaction.objectStore(LOCAL_STORE).put(record);
+        transaction.oncomplete = () => { database.close(); resolve(); };
+        transaction.onerror = () => reject(transaction.error);
+      });
+      localStorage.removeItem(`${FALLBACK_PREFIX}${record.scope}`);
+    } catch (error) {
+      console.warn('IndexedDB write failed; using the scoped local fallback.', error);
+      localStorage.setItem(`${FALLBACK_PREFIX}${record.scope}`, JSON.stringify(record));
+    }
+  });
+  return persistenceQueue;
+}
+
+function getOrCreateLocalUserId() {
+  let id = localStorage.getItem(LOCAL_PROFILE_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(LOCAL_PROFILE_KEY, id);
+  }
+  return id;
+}
+
+function legacyData(): Partial<WorkspaceData> | null {
+  const values = Object.entries(STORAGE_KEYS)
+    .map(([name, key]) => [name, localStorage.getItem(key)] as const)
+    .filter(([, value]) => value !== null);
+  if (!values.length) return null;
+  const parsed: Record<string, unknown> = {};
+  const names: Record<string, keyof WorkspaceData> = {
+    STUDENTS: 'students', HOUSES: 'houses', ITEMS: 'items',
+    INDIVIDUAL_PARTICIPATIONS: 'participations', GROUP_ITEMS: 'groupItems',
+    SETTINGS: 'settings', RESULTS: 'results', SCHEDULE: 'schedule',
+  };
+  for (const [name, value] of values) {
+    try { parsed[names[name]] = JSON.parse(value || 'null'); } catch { /* Ignore invalid legacy data. */ }
+  }
+  return parsed as Partial<WorkspaceData>;
+}
+
+export async function configureWorkspace(mode: 'local' | 'online', uid?: string) {
+  activeScope = mode === 'local' ? `local:${getOrCreateLocalUserId()}` : `firebase:${uid || ''}`;
+  cloudAccessApproved = mode === 'online' && Boolean(uid);
+  const stored = await readWorkspace(activeScope);
+  workspaceData = stored?.data || {};
+
+  if (!stored) {
+    const legacy = legacyData();
+    if (legacy) {
+      workspaceData = legacy;
+      await writeWorkspace();
+      Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+    }
+  }
+  return activeScope;
+}
+
+export function setCloudAccessApproved(approved: boolean) {
+  cloudAccessApproved = approved;
+}
+
+export function getWorkspaceLabel() {
+  return activeScope.startsWith('local:') ? 'Local offline workspace' : 'Secure online workspace';
+}
+
+export function flushWorkspacePersistence() {
+  return writeWorkspace();
+}
 
 export function getAllLocalData() {
   return {
@@ -31,36 +155,70 @@ export function getAllLocalData() {
   };
 }
 
+export async function restoreAllLocalData(data: Partial<WorkspaceData>) {
+  workspaceData = {
+    students: data.students || [],
+    houses: data.houses || [DEFAULT_HOUSE],
+    items: data.items || [],
+    participations: data.participations || [],
+    groupItems: data.groupItems || [],
+    settings: data.settings || DEFAULT_SETTINGS,
+    results: data.results || [],
+    schedule: data.schedule || [],
+  };
+  await writeWorkspace();
+  if (cloudAccessApproved) await syncLocalDataToCloud();
+}
+
 export async function syncLocalDataToCloud() {
   const user = auth.currentUser;
-  if (!user) return;
+  if (!user || !cloudAccessApproved || activeScope !== `firebase:${user.uid}`) return false;
 
   await setDoc(
-    doc(db, 'users', user.uid, 'schoolFestData', CLOUD_DOC_PATH),
-    getAllLocalData()
+    doc(db, CLOUD_ROOT, user.uid, 'data', CLOUD_DOC_PATH),
+    { ...getAllLocalData(), schemaVersion: 2, updatedAt: serverTimestamp() },
+    { merge: true },
   );
+  return true;
 }
 
 export async function loadCloudDataToLocal() {
   const user = auth.currentUser;
-  if (!user) return false;
+  if (!user || !cloudAccessApproved || activeScope !== `firebase:${user.uid}`) return false;
 
-  const snap = await getDoc(
-    doc(db, 'users', user.uid, 'schoolFestData', CLOUD_DOC_PATH)
-  );
+  let snap = await getDoc(doc(db, CLOUD_ROOT, user.uid, 'data', CLOUD_DOC_PATH));
+  if (!snap.exists()) {
+    const legacy = await getDoc(doc(db, 'users', user.uid, 'schoolFestData', CLOUD_DOC_PATH));
+    if (legacy.exists()) snap = legacy;
+  }
 
-  if (!snap.exists()) return false;
+  if (!snap.exists()) {
+    const localId = localStorage.getItem(LOCAL_PROFILE_KEY);
+    const local = localId ? await readWorkspace(`local:${localId}`) : null;
+    if (local?.data && Object.keys(local.data).length) {
+      workspaceData = local.data;
+      await writeWorkspace();
+      await syncLocalDataToCloud();
+      return true;
+    }
+    if (Object.keys(workspaceData).length) {
+      await syncLocalDataToCloud();
+      return true;
+    }
+    return false;
+  }
 
   const data = snap.data();
+  workspaceData = {
+    students: data.students || [], houses: data.houses,
+    items: data.items || [], participations: data.participations || [],
+    groupItems: data.groupItems || [], settings: data.settings || {},
+    results: data.results || [], schedule: data.schedule || [],
+  };
+  await writeWorkspace();
 
-  if (data.students) setStudents(data.students);
-  if (data.houses) setHouses(data.houses);
-  if (data.items) setItems(data.items);
-  if (data.participations) setIndividualParticipations(data.participations);
-  if (data.groupItems) setGroupItems(data.groupItems);
-  if (data.settings) setSettings(data.settings);
-  if (data.results) setResults(data.results);
-  if (data.schedule) setSchedule(data.schedule);
+  // Copy a successfully read legacy document into the new app-specific root.
+  if (!snap.ref.path.startsWith(CLOUD_ROOT)) await syncLocalDataToCloud();
 
   return true;
 }
@@ -68,17 +226,11 @@ export async function loadCloudDataToLocal() {
 export async function resetAllDataEverywhere() {
   const user = auth.currentUser;
 
-  localStorage.removeItem('schoolfest_students');
-  localStorage.removeItem('schoolfest_houses');
-  localStorage.removeItem('schoolfest_items');
-  localStorage.removeItem('schoolfest_individual_participations');
-  localStorage.removeItem('schoolfest_group_items');
-  localStorage.removeItem('schoolfest_settings');
-  localStorage.removeItem('schoolfest_results');
-  localStorage.removeItem('schoolfest_schedule');
+  workspaceData = {};
+  await writeWorkspace();
 
-  if (user) {
-    await deleteDoc(doc(db, 'users', user.uid, 'schoolFestData', 'main'));
+  if (user && cloudAccessApproved && activeScope === `firebase:${user.uid}`) {
+    await deleteDoc(doc(db, CLOUD_ROOT, user.uid, 'data', CLOUD_DOC_PATH));
   }
 }
 
@@ -106,19 +258,27 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 function getStorageItem<T>(key: string, defaultValue: T): T {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch {
-    return defaultValue;
-  }
+  const properties: Record<string, keyof WorkspaceData> = {
+    [STORAGE_KEYS.STUDENTS]: 'students', [STORAGE_KEYS.HOUSES]: 'houses',
+    [STORAGE_KEYS.ITEMS]: 'items', [STORAGE_KEYS.INDIVIDUAL_PARTICIPATIONS]: 'participations',
+    [STORAGE_KEYS.GROUP_ITEMS]: 'groupItems', [STORAGE_KEYS.SETTINGS]: 'settings',
+    [STORAGE_KEYS.RESULTS]: 'results', [STORAGE_KEYS.SCHEDULE]: 'schedule',
+  };
+  return (workspaceData[properties[key]] as T | undefined) ?? defaultValue;
 }
 
 function setStorageItem<T>(key: string, value: T): void {
-  localStorage.setItem(key, JSON.stringify(value));
-
-  if (auth.currentUser) {
-    syncLocalDataToCloud().catch(console.error);
+  const properties: Record<string, keyof WorkspaceData> = {
+    [STORAGE_KEYS.STUDENTS]: 'students', [STORAGE_KEYS.HOUSES]: 'houses',
+    [STORAGE_KEYS.ITEMS]: 'items', [STORAGE_KEYS.INDIVIDUAL_PARTICIPATIONS]: 'participations',
+    [STORAGE_KEYS.GROUP_ITEMS]: 'groupItems', [STORAGE_KEYS.SETTINGS]: 'settings',
+    [STORAGE_KEYS.RESULTS]: 'results', [STORAGE_KEYS.SCHEDULE]: 'schedule',
+  };
+  (workspaceData as Record<string, unknown>)[properties[key]] = value;
+  void writeWorkspace();
+  if (cloudAccessApproved) {
+    if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+    cloudSyncTimer = setTimeout(() => { void syncLocalDataToCloud().catch(console.error); }, 250);
   }
 }
 
@@ -151,7 +311,7 @@ export function deleteStudent(id: string): void {
 }
 
 export function getHouses(): House[] {
-  if (localStorage.getItem(STORAGE_KEYS.HOUSES) === null) {
+  if (workspaceData.houses === undefined) {
     return [DEFAULT_HOUSE];
   }
   return getStorageItem<House[]>(STORAGE_KEYS.HOUSES, []);

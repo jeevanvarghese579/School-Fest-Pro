@@ -1,0 +1,12 @@
+{
+  "name": "SchoolFest Pro",
+  "short_name": "SchoolFest",
+  "description": "School arts and sports festival management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e293b",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "384x384", "type": "image/png", "purpose": "any" }
+  ]
+}
