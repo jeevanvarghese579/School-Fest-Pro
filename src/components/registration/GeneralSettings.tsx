@@ -113,8 +113,10 @@ function GeneralSettings() {
   };
 
   const handleUpdateHouseColor = (id: string, color: string) => {
+    setHousesState((current) =>
+      current.map((house) => (house.id === id ? { ...house, color } : house))
+    );
     updateHouse(id, { color });
-    setHousesState(getHouses());
   };
 
   const handleDeleteHouse = (id: string) => {
@@ -433,6 +435,7 @@ function GeneralSettings() {
                       <input
                         type="color"
                         value={house.color}
+                        aria-label={`Color for ${house.name}`}
                         onChange={(e) => handleUpdateHouseColor(house.id, e.target.value)}
                         className="w-10 h-10 rounded cursor-pointer"
                       />

@@ -7,6 +7,7 @@ import {
   Square,
   Filter,
   Users,
+  UserPlus,
 } from 'lucide-react';
 import type { Student, Item, IndividualParticipation as IParticipation, House, AgeCategory } from '../../types';
 import {
@@ -14,8 +15,6 @@ import {
   getItems,
   getIndividualParticipations,
   setIndividualParticipations,
-  addIndividualParticipation,
-  removeIndividualParticipation,
   getHouses,
   getSettings,
 } from '../../utils/storage';
@@ -31,7 +30,9 @@ const AGE_CATEGORIES: AgeCategory[] = [
   'Super Senior',
 ];
 
-function IndividualParticipation() {
+type Props = { onAddStudent?: () => void };
+
+function IndividualParticipation({ onAddStudent }: Props) {
   const [students, setStudents] = useState<Student[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [participations, setParticipations] = useState<IParticipation[]>([]);
@@ -73,17 +74,23 @@ function IndividualParticipation() {
   };
 
   const handleToggle = (studentId: string, itemId: string) => {
-    if (isParticipating(studentId, itemId)) {
-      removeIndividualParticipation(studentId, itemId);
+    const participating = isParticipating(studentId, itemId);
+    let nextParticipations: IParticipation[];
+    if (participating) {
+      nextParticipations = participations.filter(
+        (entry) => !(entry.studentId === studentId && entry.itemId === itemId)
+      );
     } else {
       const currentCount = getStudentItemCount(studentId);
       if (currentCount >= maxItems) {
         alert(`Student can only participate in maximum ${maxItems} items`);
         return;
       }
-      addIndividualParticipation({ studentId, itemId });
+      nextParticipations = [...participations, { studentId, itemId }];
     }
-    setParticipations(getIndividualParticipations());
+    // Give React a new reference immediately; persistence and cloud sync remain background work.
+    setParticipations(nextParticipations);
+    setIndividualParticipations(nextParticipations);
   };
 
   const handleExport = () => {
@@ -357,6 +364,8 @@ function IndividualParticipation() {
                           >
                             <button
                               onClick={() => handleToggle(student.id, item.id)}
+                              aria-label={`${participating ? 'Remove' : 'Add'} ${item.name} ${participating ? 'from' : 'for'} ${student.name}`}
+                              aria-pressed={participating}
                               className={`p-1 rounded transition-colors ${
                                 participating
                                   ? 'text-green-600 hover:bg-green-100'
@@ -384,6 +393,19 @@ function IndividualParticipation() {
       <div className="mt-4 text-sm text-gray-500">
         Showing {filteredStudents.length} students and {filteredItems.length} items
       </div>
+
+      {onAddStudent && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={onAddStudent}
+            className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+          >
+            <UserPlus size={18} />
+            Add New Student
+          </button>
+        </div>
+      )}
     </div>
   );
 }

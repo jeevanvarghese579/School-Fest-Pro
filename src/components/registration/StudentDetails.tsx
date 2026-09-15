@@ -58,7 +58,12 @@ const getImportValue = (
   return String(entry?.[1] || '').trim();
 };
 
-function StudentDetails() {
+type Props = {
+  openAddForm?: boolean;
+  onAddFormOpened?: () => void;
+};
+
+function StudentDetails({ openAddForm = false, onAddFormOpened }: Props) {
   const [students, setStudentsState] = useState<Student[]>([]);
   const [houses, setHouses] = useState<House[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,6 +79,28 @@ function StudentDetails() {
     setStudentsState(getStudents());
     setHouses(getHouses());
   }, []);
+
+  useEffect(() => {
+    if (!openAddForm) return;
+    const loadedHouses = getHouses();
+    setIsEditing(true);
+    setEditingId(null);
+    setFormData({
+      name: '',
+      rollNumber: '',
+      class: '',
+      ageCategory: 'Junior',
+      sex: 'Male',
+      registerNumber: '',
+      houseId: loadedHouses[0]?.id || '',
+    });
+    setNewHouseName('');
+    onAddFormOpened?.();
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      nameInputRef.current?.focus();
+    }, 0);
+  }, [openAddForm, onAddFormOpened]);
 
   const filteredStudents = students.filter(
     (student) =>

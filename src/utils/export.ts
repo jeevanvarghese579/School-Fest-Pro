@@ -61,8 +61,9 @@ export function parseCSV(csvText: string): CSVRow[] {
 }
 
 
-function getItemParticipants(itemId: string): Array<{ registerNumber: string; chestNumber: string; name: string; className: string; ageCategory?: AgeCategory; isGroup?: boolean }> {
+function getItemParticipants(itemId: string): Array<{ registerNumber: string; chestNumber: string; name: string; className: string; houseName: string; ageCategory?: AgeCategory; isGroup?: boolean }> {
   const students = getStudents();
+  const houses = getHouses();
   const participations = getIndividualParticipations();
   const groupItems = getGroupItems();
 
@@ -76,10 +77,11 @@ function getItemParticipants(itemId: string): Array<{ registerNumber: string; ch
         chestNumber: student.registerNumber,
         name: student.name,
         className: student.class,
+        houseName: houses.find((house) => house.id === student.houseId)?.name || '',
         ageCategory: student.ageCategory,
       };
     })
-    .filter(Boolean) as Array<{ registerNumber: string; chestNumber: string; name: string; className: string; ageCategory: AgeCategory }>;
+    .filter(Boolean) as Array<{ registerNumber: string; chestNumber: string; name: string; className: string; houseName: string; ageCategory: AgeCategory }>;
 
   const groupRows = groupItems
     .filter(group => group.itemId === itemId)
@@ -90,6 +92,7 @@ function getItemParticipants(itemId: string): Array<{ registerNumber: string; ch
         chestNumber: leader?.registerNumber || group.name,
         name: group.name,
         className: 'Group',
+        houseName: houses.find((house) => house.id === group.houseId)?.name || '',
         ageCategory: leader?.ageCategory,
         isGroup: true,
       };
@@ -139,7 +142,13 @@ export function formatTime12Hour(time: string): string {
   return `${displayHour}:${minute.toString().padStart(2, '0')} ${suffix}`;
 }
 
-export function generatePDF(title: string, headers: string[], data: string[][], settings: Settings): jsPDF {
+export function generatePDF(
+  title: string,
+  headers: string[],
+  data: string[][],
+  settings: Settings,
+  options: { compactGeneratedDate?: boolean } = {}
+): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -154,17 +163,27 @@ export function generatePDF(title: string, headers: string[], data: string[][], 
   doc.setFont('helvetica', 'normal');
   doc.text(title, pageWidth / 2, 30, { align: 'center' });
 
-  doc.setFontSize(10);
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth / 2, 37, { align: 'center' });
+  const compactDate = options.compactGeneratedDate === true;
+  doc.setFontSize(compactDate ? 6 : 10);
+  doc.setTextColor(compactDate ? 100 : 0);
+  doc.text(
+    `${compactDate ? 'Generated' : 'Date'}: ${new Date().toLocaleDateString()}`,
+    compactDate ? pageWidth - 10 : pageWidth / 2,
+    37,
+    { align: compactDate ? 'right' : 'center' }
+  );
+  doc.setTextColor(0);
+
+  const tableTop = compactDate ? 40 : 45;
 
   autoTable(doc, {
     head: [headers],
     body: data,
-    startY: 45,
+    startY: tableTop,
     styles: { fontSize: 9, cellPadding: 2 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
-    margin: { top: 45, left: 10, right: 10 },
+    margin: { top: tableTop, left: 10, right: 10 },
     didDrawPage: (data) => {
       const pageCount = doc.getNumberOfPages();
       doc.setFontSize(8);
@@ -651,26 +670,28 @@ export function generateItemWiseReport(considerAgeCategories = false): void {
 
     sections.forEach((section) => {
       if (section.participants.length === 0) return;
-      data.push([section.heading, section.ageCategory, '', '', '', '']);
+      data.push([section.heading, section.ageCategory, '', '', '', '', '']);
       section.participants.forEach((participant, index) => {
         data.push([
           (index + 1).toString(),
           participant.registerNumber,
           participant.name,
           participant.className,
+          participant.houseName,
           participant.ageCategory || '',
           participant.isGroup ? 'Group' : 'Individual',
         ]);
       });
-      data.push(['', '', '', '', '', '']);
+      data.push(['', '', '', '', '', '', '']);
     });
   });
 
   const doc = generatePDF(
     'Item-wise Report',
-    ['SL No', 'Reg No', 'Participant', 'Class', 'Age Category', 'Type'],
+    ['SL No', 'Reg No', 'Participant', 'Class', 'House Name', 'Age Category', 'Type'],
     data,
-    settings
+    settings,
+    { compactGeneratedDate: true }
   );
 
   doc.save('item-wise-report.pdf');

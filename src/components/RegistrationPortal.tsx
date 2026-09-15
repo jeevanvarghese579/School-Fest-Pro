@@ -17,6 +17,7 @@ type SubPage = 'main' | 'students' | 'items' | 'individual' | 'group' | 'setting
 
 function RegistrationPortal() {
   const [currentSubPage, setCurrentSubPage] = useState<SubPage>('main');
+  const [openStudentForm, setOpenStudentForm] = useState(false);
 
   const menuItems = [
     {
@@ -66,9 +67,21 @@ function RegistrationPortal() {
           <ArrowLeft size={20} />
           <span>Back to Registration Portal</span>
         </button>
-        {currentSubPage === 'students' && <StudentDetails />}
+        {currentSubPage === 'students' && (
+          <StudentDetails
+            openAddForm={openStudentForm}
+            onAddFormOpened={() => setOpenStudentForm(false)}
+          />
+        )}
         {currentSubPage === 'items' && <ItemsManagement />}
-        {currentSubPage === 'individual' && <IndividualParticipation />}
+        {currentSubPage === 'individual' && (
+          <IndividualParticipation
+            onAddStudent={() => {
+              setOpenStudentForm(true);
+              setCurrentSubPage('students');
+            }}
+          />
+        )}
         {currentSubPage === 'group' && <GroupParticipation />}
         {currentSubPage === 'settings' && <GeneralSettings />}
       </div>
