@@ -350,7 +350,9 @@ export function generateParticipantCards(cardsPerPage: number): void {
       groupItems.some(group => group.members.includes(student.id))
   );
 
-  const doc = new jsPDF('portrait', 'mm', 'a4');
+  const isLandscapeCardSheet = cardsOnPage === 4 || cardsOnPage === 16;
+  const pageOrientation = isLandscapeCardSheet ? 'landscape' : 'portrait';
+  const doc = new jsPDF(pageOrientation, 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -361,7 +363,8 @@ export function generateParticipantCards(cardsPerPage: number): void {
   const cardHeight = (pageHeight - margin * 2) / rows;
   const baseFont = cardsOnPage === 4 ? 10 : cardsOnPage === 6 ? 8 : cardsOnPage === 16 ? 5 : 7;
   const titleFont = cardsOnPage === 4 ? 12 : cardsOnPage === 6 ? 10 : cardsOnPage === 16 ? 6 : 8;
-  const maxRegisterFont = cardsOnPage === 4 ? 280 : cardsOnPage === 6 ? 190 : cardsOnPage === 16 ? 90 : 130;
+  const maxRegisterFont = cardsOnPage === 4 ? 220 : cardsOnPage === 6 ? 190 : cardsOnPage === 16 ? 70 : 130;
+  const registerHorizontalScale = cardsOnPage === 4 ? 1.4 : cardsOnPage === 16 ? 1.5 : 1;
 
   let cardIndex = 0;
 
@@ -387,12 +390,15 @@ export function generateParticipantCards(cardsPerPage: number): void {
     let registerFont = maxRegisterFont;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(registerFont);
-    while (registerFont > baseFont + 2 && doc.getTextWidth(registerNumber) > textWidth - 2) {
+    while (registerFont > baseFont + 2 && doc.getTextWidth(registerNumber) * registerHorizontalScale > textWidth - 2) {
       registerFont -= 1;
       doc.setFontSize(registerFont);
     }
     doc.setTextColor(0);
-    doc.text(registerNumber, x + cardWidth / 2, y + cardHeight * 0.67, { align: 'center' });
+    const registerWidth = doc.getTextWidth(registerNumber) * registerHorizontalScale;
+    doc.text(registerNumber, x + (cardWidth - registerWidth) / 2, y + cardHeight * (isLandscapeCardSheet ? 0.72 : 0.67), {
+      horizontalScale: registerHorizontalScale,
+    });
 
     doc.setFontSize(titleFont);
     doc.setFont('helvetica', 'bold');
