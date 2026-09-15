@@ -340,9 +340,10 @@ export function generateParticipantCards(cardsPerPage: number): void {
   const participations = getIndividualParticipations();
   const items = getItems();
   const groupItems = getGroupItems();
+  const houses = getHouses();
   const stages = getSettings().stages;
   const settings = getSettings();
-  const cardsOnPage = cardsPerPage === 16 ? 16 : 8;
+  const cardsOnPage = [4, 6, 8, 16].includes(cardsPerPage) ? cardsPerPage : 8;
   const participatingStudents = students.filter(
     student =>
       participations.some(p => p.studentId === student.id) ||
@@ -354,13 +355,14 @@ export function generateParticipantCards(cardsPerPage: number): void {
   const pageHeight = doc.internal.pageSize.getHeight();
 
   const cols = cardsOnPage === 16 ? 4 : 2;
-  const rows = cardsOnPage === 16 ? 4 : 4;
+  const rows = cardsOnPage / cols;
   const margin = 8;
   const cardWidth = (pageWidth - margin * 2) / cols;
   const cardHeight = (pageHeight - margin * 2) / rows;
-  const baseFont = cardsOnPage === 16 ? 5 : 7;
-  const titleFont = cardsOnPage === 16 ? 6 : 8;
-  const registerFont = cardsOnPage === 16 ? 12 : 18;
+  const baseFont = cardsOnPage === 4 ? 10 : cardsOnPage === 6 ? 8 : cardsOnPage === 16 ? 5 : 7;
+  const titleFont = cardsOnPage === 4 ? 12 : cardsOnPage === 6 ? 10 : cardsOnPage === 16 ? 6 : 8;
+  const maxRegisterFont = cardsOnPage === 4 ? 44 : cardsOnPage === 6 ? 40 : cardsOnPage === 16 ? 17 : 32;
+  const registerBannerHeight = cardsOnPage === 4 ? 20 : cardsOnPage === 6 ? 18 : cardsOnPage === 16 ? 10 : 15;
 
   let cardIndex = 0;
 
@@ -393,27 +395,43 @@ export function generateParticipantCards(cardsPerPage: number): void {
     let cursorY = y + (cardsOnPage === 16 ? 22 : 24);
     const nameLines = doc.splitTextToSize(`Name: ${student.name}`, textWidth);
     doc.text(nameLines, innerX, cursorY);
-    cursorY += nameLines.length * (baseFont * 0.45) + 2;
+    cursorY += nameLines.length * (baseFont * 0.45) + (cardsOnPage >= 8 ? 1 : 2);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(Math.max(baseFont - 1, 4));
     doc.text('REGISTER NUMBER', x + cardWidth / 2, cursorY, { align: 'center' });
-    cursorY += cardsOnPage === 16 ? 4 : 5;
+    cursorY += cardsOnPage >= 8 ? 3 : 4;
+
+    const registerNumber = student.registerNumber || '-';
+    let registerFont = maxRegisterFont;
     doc.setFontSize(registerFont);
-    const registerLines = doc.splitTextToSize(student.registerNumber, textWidth);
-    doc.text(registerLines, x + cardWidth / 2, cursorY, { align: 'center' });
-    cursorY += registerLines.length * (registerFont * 0.4) + 2;
+    while (registerFont > baseFont + 2 && doc.getTextWidth(registerNumber) > textWidth - 4) {
+      registerFont -= 1;
+      doc.setFontSize(registerFont);
+    }
+    doc.setFillColor(41, 128, 185);
+    doc.roundedRect(innerX, cursorY, textWidth, registerBannerHeight, 1.5, 1.5, 'F');
+    doc.setTextColor(255);
+    doc.text(
+      registerNumber,
+      x + cardWidth / 2,
+      cursorY + registerBannerHeight / 2 + registerFont * 0.12,
+      { align: 'center' }
+    );
+    doc.setTextColor(0);
+    cursorY += registerBannerHeight + (cardsOnPage >= 8 ? 2 : 3);
 
     doc.setFontSize(baseFont);
     doc.setFont('helvetica', 'normal');
+    const houseName = houses.find((house) => house.id === student.houseId)?.name || '-';
     [
+      `House: ${houseName}`,
       `Class: ${student.class}`,
-      `Category: ${student.ageCategory}`,
-      `Sex: ${student.sex || ''}`,
+      `Category: ${student.ageCategory} | Sex: ${student.sex || '-'}`,
     ].forEach(line => {
       const wrapped = doc.splitTextToSize(line, textWidth);
       doc.text(wrapped, innerX, cursorY);
-      cursorY += wrapped.length * (baseFont * 0.45) + 2;
+      cursorY += wrapped.length * (baseFont * 0.45) + (cardsOnPage >= 8 ? 1 : 2);
     });
 
     const studentIndividualItems = participations
@@ -433,7 +451,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
 
     doc.setFont('helvetica', 'bold');
     doc.text('Items:', innerX, cursorY);
-    cursorY += 3;
+    cursorY += cardsOnPage >= 8 ? 2.5 : 3;
     doc.setFont('helvetica', 'normal');
     for (const itemName of studentItems) {
       const wrapped = doc.splitTextToSize(`- ${itemName}`, textWidth);

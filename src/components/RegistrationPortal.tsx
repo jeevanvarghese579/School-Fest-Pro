@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Users,
   FileText,
@@ -11,13 +11,19 @@ import StudentDetails from './registration/StudentDetails';
 import ItemsManagement from './registration/ItemsManagement';
 import IndividualParticipation from './registration/IndividualParticipation';
 import GroupParticipation from './registration/GroupParticipation';
-import GeneralSettings from './registration/GeneralSettings';
+import GeneralSettings, { type GeneralSettingsHandle } from './registration/GeneralSettings';
 
 type SubPage = 'main' | 'students' | 'items' | 'individual' | 'group' | 'settings';
 
 function RegistrationPortal() {
   const [currentSubPage, setCurrentSubPage] = useState<SubPage>('main');
   const [openStudentForm, setOpenStudentForm] = useState(false);
+  const generalSettingsRef = useRef<GeneralSettingsHandle>(null);
+
+  const handleBack = () => {
+    if (currentSubPage === 'settings') generalSettingsRef.current?.save();
+    setCurrentSubPage('main');
+  };
 
   const menuItems = [
     {
@@ -61,7 +67,7 @@ function RegistrationPortal() {
     return (
       <div>
         <button
-          onClick={() => setCurrentSubPage('main')}
+          onClick={handleBack}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors"
         >
           <ArrowLeft size={20} />
@@ -83,7 +89,7 @@ function RegistrationPortal() {
           />
         )}
         {currentSubPage === 'group' && <GroupParticipation />}
-        {currentSubPage === 'settings' && <GeneralSettings />}
+        {currentSubPage === 'settings' && <GeneralSettings ref={generalSettingsRef} />}
       </div>
     );
   }

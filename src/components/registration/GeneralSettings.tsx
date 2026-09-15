@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -34,7 +34,11 @@ const DEFAULT_COLORS = [
 
 type SettingsTab = 'school' | 'stages' | 'houses' | 'points';
 
-function GeneralSettings() {
+export type GeneralSettingsHandle = {
+  save: () => void;
+};
+
+const GeneralSettings = forwardRef<GeneralSettingsHandle>(function GeneralSettings(_, ref) {
   const [settings, setSettingsState] = useState<Settings | null>(null);
   const [houses, setHousesState] = useState<House[]>([]);
   const [activeTab, setActiveTab] = useState<SettingsTab>('school');
@@ -57,6 +61,12 @@ function GeneralSettings() {
     setSettings(settings);
     alert('Settings saved successfully!');
   };
+
+  useImperativeHandle(ref, () => ({
+    save: () => {
+      if (settings) setSettings(settings);
+    },
+  }), [settings]);
 
   const handleAddStage = () => {
     if (!settings || !newStageName.trim()) return;
@@ -519,6 +529,6 @@ function GeneralSettings() {
       />
     </div>
   );
-}
+});
 
 export default GeneralSettings;
