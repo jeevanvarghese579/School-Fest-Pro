@@ -184,17 +184,10 @@ export function generatePDF(
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     margin: { top: tableTop, left: 10, right: 10 },
-    didDrawPage: (data) => {
-      const pageCount = doc.getNumberOfPages();
-      doc.setFontSize(8);
-      doc.text(
-        `Page ${data.pageNumber} of ${pageCount}`,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
-        { align: 'center' }
-      );
-    },
   });
+
+  // Add numbering only after the table is complete so every page gets the final total.
+  addReportFooter(doc);
 
   return doc;
 }
@@ -367,6 +360,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
   const cardHeight = (pageHeight - margin * 2) / rows;
   const baseFont = cardsOnPage === 16 ? 5 : 7;
   const titleFont = cardsOnPage === 16 ? 6 : 8;
+  const registerFont = cardsOnPage === 16 ? 12 : 18;
 
   let cardIndex = 0;
 
@@ -397,15 +391,26 @@ export function generateParticipantCards(cardsPerPage: number): void {
     doc.text(doc.splitTextToSize(settings.programmeName, textWidth), x + cardWidth / 2, y + 16, { align: 'center' });
 
     let cursorY = y + (cardsOnPage === 16 ? 22 : 24);
-    const lines = [
-      `Name: ${student.name}`,
-      `Reg No: ${student.registerNumber}`,
+    const nameLines = doc.splitTextToSize(`Name: ${student.name}`, textWidth);
+    doc.text(nameLines, innerX, cursorY);
+    cursorY += nameLines.length * (baseFont * 0.45) + 2;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(Math.max(baseFont - 1, 4));
+    doc.text('REGISTER NUMBER', x + cardWidth / 2, cursorY, { align: 'center' });
+    cursorY += cardsOnPage === 16 ? 4 : 5;
+    doc.setFontSize(registerFont);
+    const registerLines = doc.splitTextToSize(student.registerNumber, textWidth);
+    doc.text(registerLines, x + cardWidth / 2, cursorY, { align: 'center' });
+    cursorY += registerLines.length * (registerFont * 0.4) + 2;
+
+    doc.setFontSize(baseFont);
+    doc.setFont('helvetica', 'normal');
+    [
       `Class: ${student.class}`,
       `Category: ${student.ageCategory}`,
       `Sex: ${student.sex || ''}`,
-    ];
-
-    lines.forEach(line => {
+    ].forEach(line => {
       const wrapped = doc.splitTextToSize(line, textWidth);
       doc.text(wrapped, innerX, cursorY);
       cursorY += wrapped.length * (baseFont * 0.45) + 2;
@@ -706,7 +711,7 @@ function addReportFooter(doc: jsPDF): void {
     doc.setPage(page);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Page ${page} of ${pageCount}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text(`${page} of ${pageCount}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
   }
 }
 

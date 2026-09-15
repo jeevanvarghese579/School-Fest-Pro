@@ -86,16 +86,11 @@ function GroupParticipation() {
       return;
     }
 
-    if (!formData.selectedMembers || formData.selectedMembers.length === 0) {
-      alert('Please add at least one member to the group');
-      return;
-    }
-
-    const leaderId = formData.leaderId || formData.selectedMembers[0];
-    const orderedMembers = [
-      leaderId,
-      ...(formData.selectedMembers || []).filter((id) => id !== leaderId),
-    ].filter(Boolean);
+    const selectedMembers = formData.selectedMembers || [];
+    const leaderId = formData.leaderId || selectedMembers[0] || '';
+    const orderedMembers = leaderId
+      ? [leaderId, ...selectedMembers.filter((id) => id !== leaderId)]
+      : [];
 
     if (editingId) {
       updateGroupItem(editingId, {
@@ -103,7 +98,7 @@ function GroupParticipation() {
         itemId: formData.itemId,
         houseId: formData.houseId,
         members: orderedMembers,
-        leaderId,
+        leaderId: leaderId || undefined,
       });
     } else {
       const newGroupItem: GroupItem = {
@@ -112,12 +107,12 @@ function GroupParticipation() {
         itemId: formData.itemId,
         houseId: formData.houseId,
         members: orderedMembers,
-        leaderId,
+        leaderId: leaderId || undefined,
       };
       addGroupItem(newGroupItem);
     }
 
-    setGroupItemsState(getGroupItems());
+    setGroupItemsState([...getGroupItems()]);
     setIsEditing(false);
     setEditingId(null);
     setFormData({ selectedMembers: [] });
@@ -197,14 +192,14 @@ function GroupParticipation() {
               '';
             const orderedMembers = [leaderId, ...memberIds.filter((id) => id !== leaderId)].filter(Boolean);
 
-            if (!row.groupName || !item || !house || orderedMembers.length === 0) return null;
+            if (!row.groupName || !item || !house) return null;
             return {
               id: generateId(),
               name: row.groupName,
               itemId: item.id,
               houseId: house.id,
               members: orderedMembers,
-              leaderId,
+              leaderId: leaderId || undefined,
             };
           })
           .filter(Boolean) as GroupItem[];
@@ -356,7 +351,7 @@ function GroupParticipation() {
               <label className="block text-sm font-medium text-gray-700 mb-1">House *</label>
               <select
                 value={formData.houseId || ''}
-                onChange={(e) => setFormData({ ...formData, houseId: e.target.value, selectedMembers: [] })}
+                onChange={(e) => setFormData({ ...formData, houseId: e.target.value, selectedMembers: [], leaderId: '' })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select House</option>
@@ -373,12 +368,15 @@ function GroupParticipation() {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <label className="block text-sm font-medium text-gray-700">
-                  Select Members ({formData.selectedMembers?.length || 0} selected)
+                  Select Members - optional ({formData.selectedMembers?.length || 0} selected)
                 </label>
                 <span className="text-sm text-gray-500">
                   {getHouseStudents().length} students in {houses.find((h) => h.id === formData.houseId)?.name}
                 </span>
               </div>
+              <p className="mb-3 text-sm text-gray-500">
+                Leave members empty to register the item for the selected house only.
+              </p>
               {formData.selectedMembers.length > 0 && (
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Group Leader</label>
@@ -515,7 +513,7 @@ function GroupParticipation() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {memberNames}
+                        {memberNames || <span className="italic text-gray-400">House entry - no members</span>}
                         {remaining > 0 && (
                           <span className="text-gray-400"> +{remaining} more</span>
                         )}
