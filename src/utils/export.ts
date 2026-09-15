@@ -361,7 +361,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
   const cardHeight = (pageHeight - margin * 2) / rows;
   const baseFont = cardsOnPage === 4 ? 10 : cardsOnPage === 6 ? 8 : cardsOnPage === 16 ? 5 : 7;
   const titleFont = cardsOnPage === 4 ? 12 : cardsOnPage === 6 ? 10 : cardsOnPage === 16 ? 6 : 8;
-  const maxRegisterFont = cardsOnPage === 4 ? 44 : cardsOnPage === 6 ? 40 : cardsOnPage === 16 ? 17 : 32;
+  const maxRegisterFont = cardsOnPage === 4 ? 180 : cardsOnPage === 6 ? 130 : cardsOnPage === 16 ? 58 : 92;
 
   let cardIndex = 0;
 
@@ -383,6 +383,17 @@ export function generateParticipantCards(cardsPerPage: number): void {
     doc.setLineWidth(0.25);
     doc.rect(x + 1, y + 1, cardWidth - 2, cardHeight - 2);
 
+    const registerNumber = student.registerNumber || '-';
+    let registerFont = maxRegisterFont;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(registerFont);
+    while (registerFont > baseFont + 2 && doc.getTextWidth(registerNumber) > textWidth - 2) {
+      registerFont -= 1;
+      doc.setFontSize(registerFont);
+    }
+    doc.setTextColor(0);
+    doc.text(registerNumber, x + cardWidth / 2, y + cardHeight * 0.62, { align: 'center' });
+
     doc.setFontSize(titleFont);
     doc.setFont('helvetica', 'bold');
     const compactCard = cardsOnPage >= 8;
@@ -392,32 +403,21 @@ export function generateParticipantCards(cardsPerPage: number): void {
     doc.setFont('helvetica', 'normal');
     doc.text(doc.splitTextToSize(settings.programmeName, textWidth), x + cardWidth / 2, y + (compactCard ? 13 : 16), { align: 'center' });
 
-    let cursorY = y + (compactCard ? 18 : 24);
-    doc.setFont('helvetica', 'bold');
-
-    const registerNumber = student.registerNumber || '-';
-    let registerFont = maxRegisterFont;
-    doc.setFontSize(registerFont);
-    while (registerFont > baseFont + 2 && doc.getTextWidth(registerNumber) > textWidth - 4) {
-      registerFont -= 1;
-      doc.setFontSize(registerFont);
-    }
-    doc.text(registerNumber, x + cardWidth / 2, cursorY + registerFont * 0.34, { align: 'center' });
-    cursorY += registerFont * 0.4 + (cardsOnPage >= 8 ? 1 : 2);
-    doc.setLineWidth(0.2);
-    doc.line(innerX, cursorY, innerX + textWidth, cursorY);
-    cursorY += cardsOnPage >= 8 ? 2 : 3;
+    let cursorY = y + (cardsOnPage === 4 ? 54 : cardsOnPage === 6 ? 40 : cardsOnPage === 16 ? 28 : 31);
 
     doc.setFontSize(baseFont);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(255);
+    doc.setDrawColor(0);
+    doc.setLineWidth(cardsOnPage === 16 ? 0.1 : 0.15);
     const houseName = houses.find((house) => house.id === student.houseId)?.name || '-';
     [
       `Name: ${student.name} | House: ${houseName}`,
       `Class: ${student.class}`,
-      `Category: ${student.ageCategory} | Sex: ${student.sex || '-'}`,
+      `Category: ${student.ageCategory} | Gender: ${student.sex || '-'}`,
     ].forEach(line => {
       const wrapped = doc.splitTextToSize(line, textWidth);
-      doc.text(wrapped, innerX, cursorY);
+      doc.text(wrapped, innerX, cursorY, { renderingMode: 'fillThenStroke' });
       cursorY += wrapped.length * (baseFont * 0.45) + (cardsOnPage >= 8 ? 1 : 2);
     });
 
@@ -435,9 +435,10 @@ export function generateParticipantCards(cardsPerPage: number): void {
         return `${item?.name || group.name} (Group)`;
       });
     const studentItems = [...studentIndividualItems, ...studentGroupItems].filter(Boolean);
+    const numberedStudentItems = studentItems.map((itemName, index) => `${index + 1}. ${itemName}`);
 
     doc.setFont('helvetica', 'bold');
-    doc.text('Items:', innerX, cursorY);
+    doc.text('Items:', innerX, cursorY, { renderingMode: 'fillThenStroke' });
     cursorY += cardsOnPage >= 8 ? 2.5 : 3;
     doc.setFont('helvetica', 'normal');
 
@@ -447,20 +448,20 @@ export function generateParticipantCards(cardsPerPage: number): void {
       doc.setFontSize(fontSize);
       const gap = columnCount === 2 ? 2 : 0;
       const columnWidth = (textWidth - gap) / columnCount;
-      const itemsPerColumn = Math.ceil(studentItems.length / columnCount);
+      const itemsPerColumn = Math.ceil(numberedStudentItems.length / columnCount);
       const columns = Array.from({ length: columnCount }, (_, columnIndex) =>
-        studentItems
+        numberedStudentItems
           .slice(columnIndex * itemsPerColumn, (columnIndex + 1) * itemsPerColumn)
-          .flatMap((itemName) => doc.splitTextToSize(`- ${itemName}`, columnWidth))
+          .flatMap((itemName) => doc.splitTextToSize(itemName, columnWidth))
       );
       return { columns, columnWidth, gap, maxLines: Math.max(0, ...columns.map((lines) => lines.length)) };
     };
 
-    if (studentItems.length === 0) {
-      doc.text('None', innerX, cursorY);
+    if (numberedStudentItems.length === 0) {
+      doc.text('None', innerX, cursorY, { renderingMode: 'fillThenStroke' });
     } else {
       const singleColumn = buildItemColumns(1, baseFont);
-      const twoColumns = studentItems.length > 1 ? buildItemColumns(2, baseFont) : singleColumn;
+      const twoColumns = numberedStudentItems.length > 1 ? buildItemColumns(2, baseFont) : singleColumn;
       const columnCount = twoColumns.maxLines < singleColumn.maxLines ? 2 : 1;
       let itemFont = baseFont;
       let itemLayout = buildItemColumns(columnCount, itemFont);
@@ -479,10 +480,11 @@ export function generateParticipantCards(cardsPerPage: number): void {
       itemLayout.columns.forEach((lines, columnIndex) => {
         const columnX = innerX + columnIndex * (itemLayout.columnWidth + itemLayout.gap);
         lines.forEach((line, lineIndex) => {
-          doc.text(line, columnX, cursorY + lineIndex * lineHeight);
+          doc.text(line, columnX, cursorY + lineIndex * lineHeight, { renderingMode: 'fillThenStroke' });
         });
       });
     }
+    doc.setTextColor(0);
 
     cardIndex++;
   });
