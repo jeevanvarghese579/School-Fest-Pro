@@ -362,7 +362,6 @@ export function generateParticipantCards(cardsPerPage: number): void {
   const baseFont = cardsOnPage === 4 ? 10 : cardsOnPage === 6 ? 8 : cardsOnPage === 16 ? 5 : 7;
   const titleFont = cardsOnPage === 4 ? 12 : cardsOnPage === 6 ? 10 : cardsOnPage === 16 ? 6 : 8;
   const maxRegisterFont = cardsOnPage === 4 ? 44 : cardsOnPage === 6 ? 40 : cardsOnPage === 16 ? 17 : 32;
-  const registerBannerHeight = cardsOnPage === 4 ? 20 : cardsOnPage === 6 ? 18 : cardsOnPage === 16 ? 10 : 15;
 
   let cardIndex = 0;
 
@@ -380,27 +379,21 @@ export function generateParticipantCards(cardsPerPage: number): void {
     const innerX = x + 3;
     const textWidth = cardWidth - 6;
 
-    doc.setDrawColor(41, 128, 185);
-    doc.setLineWidth(0.5);
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.25);
     doc.rect(x + 1, y + 1, cardWidth - 2, cardHeight - 2);
 
     doc.setFontSize(titleFont);
     doc.setFont('helvetica', 'bold');
-    doc.text('Participation Card', x + cardWidth / 2, y + 6, { align: 'center' });
+    const compactCard = cardsOnPage >= 8;
+    doc.text('Participation Card', x + cardWidth / 2, y + (compactCard ? 5 : 6), { align: 'center' });
     doc.setFontSize(baseFont);
-    doc.text(doc.splitTextToSize(settings.schoolName || 'School Name', textWidth), x + cardWidth / 2, y + 11, { align: 'center' });
+    doc.text(doc.splitTextToSize(settings.schoolName || 'School Name', textWidth), x + cardWidth / 2, y + (compactCard ? 9 : 11), { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.text(doc.splitTextToSize(settings.programmeName, textWidth), x + cardWidth / 2, y + 16, { align: 'center' });
+    doc.text(doc.splitTextToSize(settings.programmeName, textWidth), x + cardWidth / 2, y + (compactCard ? 13 : 16), { align: 'center' });
 
-    let cursorY = y + (cardsOnPage === 16 ? 22 : 24);
-    const nameLines = doc.splitTextToSize(`Name: ${student.name}`, textWidth);
-    doc.text(nameLines, innerX, cursorY);
-    cursorY += nameLines.length * (baseFont * 0.45) + (cardsOnPage >= 8 ? 1 : 2);
-
+    let cursorY = y + (compactCard ? 18 : 24);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(Math.max(baseFont - 1, 4));
-    doc.text('REGISTER NUMBER', x + cardWidth / 2, cursorY, { align: 'center' });
-    cursorY += cardsOnPage >= 8 ? 3 : 4;
 
     const registerNumber = student.registerNumber || '-';
     let registerFont = maxRegisterFont;
@@ -409,23 +402,17 @@ export function generateParticipantCards(cardsPerPage: number): void {
       registerFont -= 1;
       doc.setFontSize(registerFont);
     }
-    doc.setFillColor(41, 128, 185);
-    doc.roundedRect(innerX, cursorY, textWidth, registerBannerHeight, 1.5, 1.5, 'F');
-    doc.setTextColor(255);
-    doc.text(
-      registerNumber,
-      x + cardWidth / 2,
-      cursorY + registerBannerHeight / 2 + registerFont * 0.12,
-      { align: 'center' }
-    );
-    doc.setTextColor(0);
-    cursorY += registerBannerHeight + (cardsOnPage >= 8 ? 2 : 3);
+    doc.text(registerNumber, x + cardWidth / 2, cursorY + registerFont * 0.34, { align: 'center' });
+    cursorY += registerFont * 0.4 + (cardsOnPage >= 8 ? 1 : 2);
+    doc.setLineWidth(0.2);
+    doc.line(innerX, cursorY, innerX + textWidth, cursorY);
+    cursorY += cardsOnPage >= 8 ? 2 : 3;
 
     doc.setFontSize(baseFont);
     doc.setFont('helvetica', 'normal');
     const houseName = houses.find((house) => house.id === student.houseId)?.name || '-';
     [
-      `House: ${houseName}`,
+      `Name: ${student.name} | House: ${houseName}`,
       `Class: ${student.class}`,
       `Category: ${student.ageCategory} | Sex: ${student.sex || '-'}`,
     ].forEach(line => {
@@ -453,11 +440,48 @@ export function generateParticipantCards(cardsPerPage: number): void {
     doc.text('Items:', innerX, cursorY);
     cursorY += cardsOnPage >= 8 ? 2.5 : 3;
     doc.setFont('helvetica', 'normal');
-    for (const itemName of studentItems) {
-      const wrapped = doc.splitTextToSize(`- ${itemName}`, textWidth);
-      if (cursorY + wrapped.length * 3 > y + cardHeight - 3) break;
-      doc.text(wrapped, innerX, cursorY);
-      cursorY += wrapped.length * (baseFont * 0.45) + 1.5;
+
+    const availableBottom = y + cardHeight - 4;
+    const availableHeight = Math.max(1, availableBottom - cursorY);
+    const buildItemColumns = (columnCount: number, fontSize: number) => {
+      doc.setFontSize(fontSize);
+      const gap = columnCount === 2 ? 2 : 0;
+      const columnWidth = (textWidth - gap) / columnCount;
+      const itemsPerColumn = Math.ceil(studentItems.length / columnCount);
+      const columns = Array.from({ length: columnCount }, (_, columnIndex) =>
+        studentItems
+          .slice(columnIndex * itemsPerColumn, (columnIndex + 1) * itemsPerColumn)
+          .flatMap((itemName) => doc.splitTextToSize(`- ${itemName}`, columnWidth))
+      );
+      return { columns, columnWidth, gap, maxLines: Math.max(0, ...columns.map((lines) => lines.length)) };
+    };
+
+    if (studentItems.length === 0) {
+      doc.text('None', innerX, cursorY);
+    } else {
+      const singleColumn = buildItemColumns(1, baseFont);
+      const twoColumns = studentItems.length > 1 ? buildItemColumns(2, baseFont) : singleColumn;
+      const columnCount = twoColumns.maxLines < singleColumn.maxLines ? 2 : 1;
+      let itemFont = baseFont;
+      let itemLayout = buildItemColumns(columnCount, itemFont);
+      let lineHeight = itemFont * 0.45 + 0.8;
+
+      while (itemFont > 3 && itemLayout.maxLines * lineHeight > availableHeight) {
+        itemFont -= 0.5;
+        itemLayout = buildItemColumns(columnCount, itemFont);
+        lineHeight = itemFont * 0.45 + 0.5;
+      }
+      if (itemLayout.maxLines > 1) {
+        lineHeight = Math.min(lineHeight, availableHeight / (itemLayout.maxLines - 1));
+      }
+
+      doc.setFontSize(itemFont);
+      itemLayout.columns.forEach((lines, columnIndex) => {
+        const columnX = innerX + columnIndex * (itemLayout.columnWidth + itemLayout.gap);
+        lines.forEach((line, lineIndex) => {
+          doc.text(line, columnX, cursorY + lineIndex * lineHeight);
+        });
+      });
     }
 
     cardIndex++;
