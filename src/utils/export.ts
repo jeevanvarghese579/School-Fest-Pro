@@ -361,7 +361,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
   const cardHeight = (pageHeight - margin * 2) / rows;
   const baseFont = cardsOnPage === 4 ? 10 : cardsOnPage === 6 ? 8 : cardsOnPage === 16 ? 5 : 7;
   const titleFont = cardsOnPage === 4 ? 12 : cardsOnPage === 6 ? 10 : cardsOnPage === 16 ? 6 : 8;
-  const maxRegisterFont = cardsOnPage === 4 ? 180 : cardsOnPage === 6 ? 130 : cardsOnPage === 16 ? 58 : 92;
+  const maxRegisterFont = cardsOnPage === 4 ? 280 : cardsOnPage === 6 ? 190 : cardsOnPage === 16 ? 90 : 130;
 
   let cardIndex = 0;
 
@@ -392,7 +392,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
       doc.setFontSize(registerFont);
     }
     doc.setTextColor(0);
-    doc.text(registerNumber, x + cardWidth / 2, y + cardHeight * 0.62, { align: 'center' });
+    doc.text(registerNumber, x + cardWidth / 2, y + cardHeight * 0.67, { align: 'center' });
 
     doc.setFontSize(titleFont);
     doc.setFont('helvetica', 'bold');
@@ -400,16 +400,16 @@ export function generateParticipantCards(cardsPerPage: number): void {
     doc.text('Participation Card', x + cardWidth / 2, y + (compactCard ? 5 : 6), { align: 'center' });
     doc.setFontSize(baseFont);
     doc.text(doc.splitTextToSize(settings.schoolName || 'School Name', textWidth), x + cardWidth / 2, y + (compactCard ? 9 : 11), { align: 'center' });
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.text(doc.splitTextToSize(settings.programmeName, textWidth), x + cardWidth / 2, y + (compactCard ? 13 : 16), { align: 'center' });
 
     let cursorY = y + (cardsOnPage === 4 ? 54 : cardsOnPage === 6 ? 40 : cardsOnPage === 16 ? 28 : 31);
 
     doc.setFontSize(baseFont);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(255);
     doc.setDrawColor(0);
-    doc.setLineWidth(cardsOnPage === 16 ? 0.1 : 0.15);
+    doc.setLineWidth(cardsOnPage === 16 ? 0.15 : 0.25);
     const houseName = houses.find((house) => house.id === student.houseId)?.name || '-';
     [
       `Name: ${student.name} | House: ${houseName}`,
@@ -440,7 +440,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
     doc.setFont('helvetica', 'bold');
     doc.text('Items:', innerX, cursorY, { renderingMode: 'fillThenStroke' });
     cursorY += cardsOnPage >= 8 ? 2.5 : 3;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
 
     const availableBottom = y + cardHeight - 4;
     const availableHeight = Math.max(1, availableBottom - cursorY);

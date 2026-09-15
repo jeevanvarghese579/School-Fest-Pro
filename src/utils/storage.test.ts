@@ -7,7 +7,10 @@ vi.mock('../firebase', () => ({ auth: { currentUser: null }, db: {} }));
 import {
   configureWorkspace,
   flushWorkspacePersistence,
+  getAllLocalData,
+  getGroupItems,
   getStudents,
+  setGroupItems,
   setStudents,
 } from './storage';
 
@@ -49,5 +52,26 @@ describe('workspace isolation', () => {
     await configureWorkspace('online', 'legacy-owner');
     expect(getStudents()).toEqual([alice]);
     expect(localStorage.getItem('schoolfest_students')).toBeNull();
+  });
+
+  it('preserves a house-only group without writing an undefined leader', async () => {
+    await configureWorkspace('online', 'group-owner');
+    setGroupItems([{
+      id: 'empty-group',
+      name: 'Blue House Team',
+      itemId: 'group-item',
+      houseId: 'blue-house',
+      members: [],
+      leaderId: undefined,
+    }]);
+    await flushWorkspacePersistence();
+
+    const savedGroup = getAllLocalData().groupItems[0];
+    expect(savedGroup.members).toEqual([]);
+    expect(savedGroup).not.toHaveProperty('leaderId');
+
+    await configureWorkspace('online', 'another-user');
+    await configureWorkspace('online', 'group-owner');
+    expect(getGroupItems()).toEqual([savedGroup]);
   });
 });

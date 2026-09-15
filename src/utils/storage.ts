@@ -395,12 +395,20 @@ export function removeIndividualParticipation(studentId: string, itemId: string)
   setIndividualParticipations(participations);
 }
 
+function normalizeGroupItem(groupItem: GroupItem): GroupItem {
+  const { leaderId, ...groupWithoutLeader } = groupItem;
+  const members = Array.isArray(groupItem.members) ? groupItem.members.filter(Boolean) : [];
+  return leaderId
+    ? { ...groupWithoutLeader, members, leaderId }
+    : { ...groupWithoutLeader, members };
+}
+
 export function getGroupItems(): GroupItem[] {
-  return getStorageItem<GroupItem[]>(STORAGE_KEYS.GROUP_ITEMS, []);
+  return getStorageItem<GroupItem[]>(STORAGE_KEYS.GROUP_ITEMS, []).map(normalizeGroupItem);
 }
 
 export function setGroupItems(groupItems: GroupItem[]): void {
-  setStorageItem(STORAGE_KEYS.GROUP_ITEMS, groupItems);
+  setStorageItem(STORAGE_KEYS.GROUP_ITEMS, groupItems.map(normalizeGroupItem));
 }
 
 export function addGroupItem(groupItem: GroupItem): void {
@@ -413,7 +421,7 @@ export function updateGroupItem(id: string, groupItem: Partial<GroupItem>): void
   const groupItems = getGroupItems();
   const index = groupItems.findIndex(g => g.id === id);
   if (index !== -1) {
-    groupItems[index] = { ...groupItems[index], ...groupItem };
+    groupItems[index] = normalizeGroupItem({ ...groupItems[index], ...groupItem });
     setGroupItems(groupItems);
   }
 }
