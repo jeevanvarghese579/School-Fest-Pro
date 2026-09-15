@@ -407,9 +407,14 @@ export function generateParticipantCards(cardsPerPage: number): void {
 
     doc.setFontSize(baseFont);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255);
-    doc.setDrawColor(0);
-    doc.setLineWidth(cardsOnPage === 16 ? 0.15 : 0.25);
+    const drawLegibleText = (text: string | string[], textX: number, textY: number) => {
+      doc.setTextColor(255);
+      doc.setDrawColor(255);
+      doc.setLineWidth(cardsOnPage === 16 ? 0.2 : cardsOnPage >= 8 ? 0.3 : 0.4);
+      doc.text(text, textX, textY, { renderingMode: 'fillThenStroke' });
+      doc.setTextColor(0);
+      doc.text(text, textX, textY);
+    };
     const houseName = houses.find((house) => house.id === student.houseId)?.name || '-';
     [
       `Name: ${student.name} | House: ${houseName}`,
@@ -417,7 +422,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
       `Category: ${student.ageCategory} | Gender: ${student.sex || '-'}`,
     ].forEach(line => {
       const wrapped = doc.splitTextToSize(line, textWidth);
-      doc.text(wrapped, innerX, cursorY, { renderingMode: 'fillThenStroke' });
+      drawLegibleText(wrapped, innerX, cursorY);
       cursorY += wrapped.length * (baseFont * 0.45) + (cardsOnPage >= 8 ? 1 : 2);
     });
 
@@ -438,7 +443,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
     const numberedStudentItems = studentItems.map((itemName, index) => `${index + 1}. ${itemName}`);
 
     doc.setFont('helvetica', 'bold');
-    doc.text('Items:', innerX, cursorY, { renderingMode: 'fillThenStroke' });
+    drawLegibleText('Items:', innerX, cursorY);
     cursorY += cardsOnPage >= 8 ? 2.5 : 3;
     doc.setFont('helvetica', 'bold');
 
@@ -458,7 +463,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
     };
 
     if (numberedStudentItems.length === 0) {
-      doc.text('None', innerX, cursorY, { renderingMode: 'fillThenStroke' });
+      drawLegibleText('None', innerX, cursorY);
     } else {
       const singleColumn = buildItemColumns(1, baseFont);
       const twoColumns = numberedStudentItems.length > 1 ? buildItemColumns(2, baseFont) : singleColumn;
@@ -480,7 +485,7 @@ export function generateParticipantCards(cardsPerPage: number): void {
       itemLayout.columns.forEach((lines, columnIndex) => {
         const columnX = innerX + columnIndex * (itemLayout.columnWidth + itemLayout.gap);
         lines.forEach((line, lineIndex) => {
-          doc.text(line, columnX, cursorY + lineIndex * lineHeight, { renderingMode: 'fillThenStroke' });
+          drawLegibleText(line, columnX, cursorY + lineIndex * lineHeight);
         });
       });
     }
