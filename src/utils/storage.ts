@@ -236,7 +236,7 @@ export async function resetAllDataEverywhere() {
 
 export const DEFAULT_HOUSE: House = {
   id: 'default-red-house',
-  name: 'Red House',
+  name: 'Red',
   color: '#EF4444',
 };
 
@@ -314,7 +314,11 @@ export function getHouses(): House[] {
   if (workspaceData.houses === undefined) {
     return [DEFAULT_HOUSE];
   }
-  return getStorageItem<House[]>(STORAGE_KEYS.HOUSES, []);
+  return getStorageItem<House[]>(STORAGE_KEYS.HOUSES, []).map((house) =>
+    house.id === DEFAULT_HOUSE.id && house.name === 'Red House'
+      ? { ...house, name: DEFAULT_HOUSE.name }
+      : house
+  );
 }
 
 export function setHouses(houses: House[]): void {

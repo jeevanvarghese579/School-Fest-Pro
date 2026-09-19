@@ -1,8 +1,8 @@
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import type { AgeCategory, Item, ItemClassification, Settings } from '../types';
-import { getStudents, getItems, getHouses, getSettings, getIndividualParticipations, getGroupItems, getResults } from './storage';
+import autoTable, { type UserOptions } from 'jspdf-autotable';
+import type { AgeCategory, Item, ItemClassification, ScheduleItem, Settings, Student, GroupItem, IndividualParticipation } from '../types';
+import { getStudents, getItems, getHouses, getSettings, getIndividualParticipations, getGroupItems, getResults, getSchedule } from './storage';
 
 export type CSVRow = Record<string, string>;
 
@@ -142,14 +142,25 @@ export function formatTime12Hour(time: string): string {
   return `${displayHour}:${minute.toString().padStart(2, '0')} ${suffix}`;
 }
 
+export function formatDateDDMMYYYY(date = new Date()): string {
+  return [date.getDate(), date.getMonth() + 1, date.getFullYear()]
+    .map((part, index) => index < 2 ? String(part).padStart(2, '0') : String(part))
+    .join('/');
+}
+
 export function generatePDF(
   title: string,
   headers: string[],
   data: string[][],
   settings: Settings,
-  options: { compactGeneratedDate?: boolean } = {}
+  options: {
+    compactGeneratedDate?: boolean;
+    orientation?: 'portrait' | 'landscape';
+    tableFontSize?: number;
+    columnStyles?: UserOptions['columnStyles'];
+  } = {}
 ): jsPDF {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: options.orientation || 'portrait' });
   const pageWidth = doc.internal.pageSize.getWidth();
 
   doc.setFontSize(16);
@@ -167,7 +178,7 @@ export function generatePDF(
   doc.setFontSize(compactDate ? 6 : 10);
   doc.setTextColor(compactDate ? 100 : 0);
   doc.text(
-    `${compactDate ? 'Generated' : 'Date'}: ${new Date().toLocaleDateString()}`,
+    `${compactDate ? 'Generated' : 'Date'}: ${formatDateDDMMYYYY()}`,
     compactDate ? pageWidth - 10 : pageWidth / 2,
     37,
     { align: compactDate ? 'right' : 'center' }
@@ -180,9 +191,10 @@ export function generatePDF(
     head: [headers],
     body: data,
     startY: tableTop,
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: options.tableFontSize ?? 9, cellPadding: 2 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: options.columnStyles,
     margin: { top: tableTop, left: 10, right: 10 },
   });
 
@@ -190,6 +202,92 @@ export function generatePDF(
   addReportFooter(doc);
 
   return doc;
+}
+
+function scheduleEntryAgeMatches(student: Student | undefined, ageCategory: ScheduleItem['ageCategory']): boolean {
+  if (!ageCategory) return true;
+  return (student?.ageCategory || 'Unspecified') === ageCategory;
+}
+
+export function getScheduleContestantNames(
+  scheduleItem: ScheduleItem,
+  students: Student[] = getStudents(),
+  participations: IndividualParticipation[] = getIndividualParticipations(),
+  groups: GroupItem[] = getGroupItems(),
+): string[] {
+  const studentById = new Map(students.map((student) => [student.id, student]));
+  const individualNames = participations
+    .filter((participation) => participation.itemId === scheduleItem.itemId)
+    .map((participation) => studentById.get(participation.studentId))
+    .filter((student): student is Student => Boolean(student) && scheduleEntryAgeMatches(student, scheduleItem.ageCategory))
+    .map((student) => `${student.registerNumber} - ${student.name}`);
+
+  const groupNames = groups
+    .filter((group) => group.itemId === scheduleItem.itemId)
+    .filter((group) => scheduleEntryAgeMatches(studentById.get(group.leaderId || group.members[0]), scheduleItem.ageCategory))
+    .map((group) => {
+      const members = group.members
+        .map((memberId) => studentById.get(memberId))
+        .filter((student): student is Student => Boolean(student))
+        .map((student) => `${student.registerNumber} - ${student.name}`);
+      return members.length ? `${group.name}: ${members.join(', ')}` : `${group.name} (no members)`;
+    });
+
+  return [...individualNames, ...groupNames];
+}
+
+export function formatScheduleTimeCalculation(entry: ScheduleItem): string {
+  const performanceMinutes = entry.timePerPerformance * entry.participantCount;
+  const totalMinutes = entry.totalDuration || performanceMinutes + entry.bufferMinutes;
+  const multiplication = `${entry.timePerPerformance} min x ${entry.participantCount} = ${performanceMinutes} min`;
+  return entry.bufferMinutes > 0
+    ? `${multiplication} + ${entry.bufferMinutes} min buffer = ${totalMinutes} min`
+    : `${multiplication} total`;
+}
+
+export function generateScheduleWithContestantsReport(): void {
+  const settings = getSettings();
+  const items = getItems();
+  const schedule = getSchedule();
+  const rows = schedule.map((entry, index) => {
+    const item = items.find((candidate) => candidate.id === entry.itemId);
+    const stage = settings.stages.find((candidate) => candidate.id === entry.stageId);
+    return [
+      (index + 1).toString(),
+      item?.name || '',
+      `Day ${entry.day}`,
+      `${formatTime12Hour(entry.startTime)} - ${formatTime12Hour(entry.endTime)}\n${formatScheduleTimeCalculation(entry)}`,
+      entry.ageCategory || '',
+      stage?.name || '',
+      getScheduleContestantNames(entry).join('\n'),
+      '',
+      entry.remark || '',
+    ];
+  });
+
+  const doc = generatePDF(
+    'Schedule with Contestants',
+    ['Sl. No.', 'Item Name', 'Day', 'Time', 'Age Category', 'Stage', 'Contestants', 'Judges', 'Remarks'],
+    rows,
+    settings,
+    {
+      compactGeneratedDate: true,
+      orientation: 'landscape',
+      tableFontSize: 7,
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 25 },
+        2: { cellWidth: 12 },
+        3: { cellWidth: 55 },
+        4: { cellWidth: 18 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 65 },
+        7: { cellWidth: 50 },
+        8: { cellWidth: 18 },
+      },
+    },
+  );
+  doc.save('schedule-with-contestants.pdf');
 }
 
 export function generateHouseWiseReport(houseId: string): void {

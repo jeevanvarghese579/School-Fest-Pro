@@ -7,13 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "vitest run src/utils/storage.test.ts",
+    "test": "vitest run src/utils/storage.test.ts src/utils/excelRoundTrip.test.ts src/utils/export.test.ts",
     "test:rules": "vitest run tests/firestore.rules.test.ts",
     "test:rules:emulator": "firebase emulators:exec --only firestore \"npm run test:rules\"",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
+    "@office-kit/xlsx": "0.18.0",
     "@supabase/supabase-js": "^2.57.4",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/cli": "^2.11.2",

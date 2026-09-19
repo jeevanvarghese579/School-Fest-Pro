@@ -1,6 +1,6 @@
 import { getAllLocalData, resetAllDataEverywhere, restoreAllLocalData } from '../utils/storage';
 import { useState } from 'react';
-import { Copy, Check, Trash2, Download, Upload, AlertCircle, ExternalLink, Mail, Globe } from 'lucide-react';
+import { Copy, Check, Trash2, Download, Upload, AlertCircle, ExternalLink, Mail, Globe, FileSpreadsheet, Loader2 } from 'lucide-react';
 import appIcon from '../assets/app-icon.svg';
 
 const DEVELOPER_EMAIL = 'jeevanvarghese579@gmail.com';
@@ -9,6 +9,7 @@ const DEVELOPER_WEBSITE = 'https://itsjeevanvarghese.web.app/';
 function About() {
   const [copied, setCopied] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [excelBusy, setExcelBusy] = useState<'export' | 'import' | null>(null);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(DEVELOPER_EMAIL);
@@ -63,6 +64,45 @@ const handleReset = async () => {
     };
     reader.readAsText(file);
     event.target.value = '';
+  };
+
+  const handleExcelExport = async () => {
+    setExcelBusy('export');
+    try {
+      const { createEditableExcelWorkbook, downloadExcelWorkbook } = await import('../utils/excelRoundTrip');
+      const bytes = await createEditableExcelWorkbook(getAllLocalData());
+      downloadExcelWorkbook(bytes, `schoolfest-editable-data-${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+      console.error(error);
+      alert('Could not create the Excel file. Please try again.');
+    } finally {
+      setExcelBusy(null);
+    }
+  };
+
+  const handleExcelImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setExcelBusy('import');
+    try {
+      const { importEditableExcelWorkbook } = await import('../utils/excelRoundTrip');
+      const imported = await importEditableExcelWorkbook(file, getAllLocalData());
+      const { added, updated, deleted, skipped, warnings } = imported.summary;
+      const warningText = warnings.length ? `\n\nWarnings (${warnings.length}):\n${warnings.slice(0, 5).join('\n')}${warnings.length > 5 ? '\n…' : ''}` : '';
+      const confirmed = window.confirm(
+        `Import this Excel file?\n\nAdded: ${added}\nUpdated: ${updated}\nDeleted: ${deleted}\nSkipped: ${skipped}${warningText}\n\nThis updates only your current workspace.`,
+      );
+      if (!confirmed) return;
+      await restoreAllLocalData(imported.data);
+      alert('Excel changes imported successfully. The app will now reload.');
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : 'Could not import the Excel file.');
+    } finally {
+      setExcelBusy(null);
+    }
   };
 
   return (
@@ -149,6 +189,32 @@ const handleReset = async () => {
         {/* Backup & Restore Section */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <h3 className="font-semibold text-gray-800 mb-4">Data Management</h3>
+
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 mb-4 text-left">
+            <div className="flex items-center gap-2 font-semibold text-emerald-900 mb-2">
+              <FileSpreadsheet size={19} />
+              Edit Data in Excel
+            </div>
+            <p className="text-sm text-emerald-900/80 mb-3">
+              Export, edit the workbook, then import it to update existing records. Keep IDs unchanged; add rows with a blank ID, or type DELETE in the Action column to remove a record.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={handleExcelExport}
+                disabled={excelBusy !== null}
+                className="flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-60 disabled:cursor-wait transition-colors"
+              >
+                {excelBusy === 'export' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                Export Excel
+              </button>
+              <label className={`flex items-center justify-center gap-2 px-3 py-2.5 bg-white text-emerald-800 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors ${excelBusy !== null ? 'opacity-60 cursor-wait pointer-events-none' : 'cursor-pointer'}`}>
+                {excelBusy === 'import' ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                Import Updated Excel
+                <input type="file" accept=".xlsx" onChange={handleExcelImport} className="hidden" disabled={excelBusy !== null} />
+              </label>
+            </div>
+          </div>
 
           <div className="space-y-3">
             <button
@@ -239,7 +305,7 @@ const handleReset = async () => {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-amber-500 mt-0.5">*</span>
-              <span>Import/Export data as CSV</span>
+              <span>Import/export data as CSV or editable Excel workbook</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-amber-500 mt-0.5">*</span>

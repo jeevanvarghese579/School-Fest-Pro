@@ -9,8 +9,10 @@ import {
   flushWorkspacePersistence,
   getAllLocalData,
   getGroupItems,
+  getHouses,
   getStudents,
   setGroupItems,
+  setHouses,
   setStudents,
 } from './storage';
 
@@ -73,5 +75,14 @@ describe('workspace isolation', () => {
     await configureWorkspace('online', 'another-user');
     await configureWorkspace('online', 'group-owner');
     expect(getGroupItems()).toEqual([savedGroup]);
+  });
+
+  it('shows the built-in red house as Red for existing and new workspaces', async () => {
+    await configureWorkspace('online', 'house-name-owner');
+    setHouses([{ id: 'default-red-house', name: 'Red House', color: '#EF4444' }]);
+    expect(getHouses()[0].name).toBe('Red');
+
+    await configureWorkspace('online', 'new-house-name-owner');
+    expect(getHouses()[0].name).toBe('Red');
   });
 });

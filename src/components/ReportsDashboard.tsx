@@ -10,6 +10,7 @@ import {
   MapPin,
   ClipboardList,
   FileText,
+  Users,
 } from 'lucide-react';
 import {
   generatePDF,
@@ -21,6 +22,7 @@ import {
   generateGroupList,
   generateItemWiseReport,
   formatTime12Hour,
+  generateScheduleWithContestantsReport,
 } from '../utils/export';
 import { generateScheduleResult, type ScheduleDiagnostics } from '../utils/schedule';
 import {
@@ -89,12 +91,12 @@ function ReportsDashboard() {
       'Age Category',
       'Stage',
       'Day',
-      'Start Time',
-      'End Time',
+      'Time',
       'Participants/Groups',
       'Time / Performance',
       'Buffer',
       'Total Duration',
+      'Judges',
       'Remarks',
     ];
 
@@ -109,18 +111,35 @@ function ReportsDashboard() {
         item.ageCategory || '',
         stage?.name || '',
         `Day ${item.day}`,
-        formatTime12Hour(item.startTime),
-        formatTime12Hour(item.endTime),
+        `${formatTime12Hour(item.startTime)} - ${formatTime12Hour(item.endTime)}`,
         item.participantCount.toString(),
         `${timePerPerformance} min`,
         `${bufferMinutes} min`,
         `${totalDuration} min`,
+        '',
         item.remark || '',
       ];
     });
 
-    const doc = generatePDF('Program Schedule', headers, data, settings);
-    doc.save('program-schedule.pdf');
+    const doc = generatePDF('Programme Schedule', headers, data, settings, {
+      compactGeneratedDate: true,
+      orientation: 'landscape',
+      tableFontSize: 7,
+      columnStyles: {
+        0: { cellWidth: 32 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 13 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 23 },
+        6: { cellWidth: 22 },
+        7: { cellWidth: 14 },
+        8: { cellWidth: 18 },
+        9: { cellWidth: 48 },
+        10: { cellWidth: 18 },
+      },
+    });
+    doc.save('programme-schedule.pdf');
   };
 
   const handleDownloadScoresheetsPdf = () => {
@@ -385,11 +404,11 @@ function ReportsDashboard() {
             </button>
           </div>
           {schedule.length > 0 && (
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-50 rounded-lg p-3">
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Schedule Summary
               </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
                 <div>
                   <span className="text-gray-500">Schedule Entries:</span>
                   <span className="ml-2 font-medium">{schedule.length}</span>
@@ -417,6 +436,10 @@ function ReportsDashboard() {
                   <span className="ml-2 font-medium">{settings.scheduleBufferMinutes} min</span>
                 </div>
               </div>
+              <details className="mt-3 rounded-lg border border-gray-200 bg-white">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50">
+                  View generated schedule details
+                </summary>
               {scheduleDiagnostics && (
                 <div className="mt-4 border border-gray-200 rounded-lg bg-white p-4">
                   <h5 className="text-sm font-semibold text-gray-800 mb-3">Schedule Preview</h5>
@@ -485,12 +508,12 @@ function ReportsDashboard() {
                       <th className="py-2 pr-4">Age Category</th>
                       <th className="py-2 pr-4">Stage</th>
                       <th className="py-2 pr-4">Day</th>
-                      <th className="py-2 pr-4">Start</th>
-                      <th className="py-2 pr-4">End</th>
+                      <th className="py-2 pr-4">Time</th>
                       <th className="py-2 pr-4">Participants/Groups</th>
                       <th className="py-2 pr-4">Time / Performance</th>
                       <th className="py-2 pr-4">Buffer</th>
                       <th className="py-2 pr-4">Total</th>
+                      <th className="py-2 pr-4">Judges</th>
                       <th className="py-2 pr-4">Remarks</th>
                     </tr>
                   </thead>
@@ -505,13 +528,13 @@ function ReportsDashboard() {
                           <td className="py-2 pr-4 text-gray-600">{stage?.name || ''}</td>
                           <td className="py-2 pr-4 text-gray-600">Day {scheduleItem.day}</td>
                           <td className="py-2 pr-4 text-gray-600">
-                            {formatTime12Hour(scheduleItem.startTime)}
+                            {formatTime12Hour(scheduleItem.startTime)} - {formatTime12Hour(scheduleItem.endTime)}
                           </td>
-                          <td className="py-2 pr-4 text-gray-600">{formatTime12Hour(scheduleItem.endTime)}</td>
                           <td className="py-2 pr-4 text-gray-600">{scheduleItem.participantCount}</td>
                           <td className="py-2 pr-4 text-gray-600">{scheduleItem.timePerPerformance} min</td>
                           <td className="py-2 pr-4 text-gray-600">{scheduleItem.bufferMinutes} min</td>
                           <td className="py-2 pr-4 text-gray-600">{scheduleItem.totalDuration} min</td>
+                          <td className="py-2 pr-4 text-gray-600"></td>
                           <td className="py-2 pr-4 text-gray-600">{scheduleItem.remark || ''}</td>
                         </tr>
                       );
@@ -519,7 +542,29 @@ function ReportsDashboard() {
                   </tbody>
                 </table>
               </div>
+              </details>
             </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Schedule with Contestants',
+      description: 'Export the programme schedule with the names of competing students and group members',
+      icon: Users,
+      color: 'from-teal-500 to-emerald-600',
+      content: (
+        <div className="mt-4">
+          <button
+            onClick={generateScheduleWithContestantsReport}
+            disabled={schedule.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg hover:from-teal-600 hover:to-emerald-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={16} />
+            <span>Generate Schedule with Contestants</span>
+          </button>
+          {schedule.length === 0 && (
+            <p className="mt-2 text-xs text-gray-500">Generate the programme schedule first.</p>
           )}
         </div>
       ),
