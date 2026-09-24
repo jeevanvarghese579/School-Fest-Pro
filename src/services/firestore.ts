@@ -1,5 +1,6 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { getDoc, setDoc } from "firebase/firestore";
+import { auth } from "../firebase";
+import { userDocument } from './firebasePaths';
 import type { Settings } from "../types";
 
 export async function saveSettings(settings: Settings) {
@@ -8,7 +9,7 @@ export async function saveSettings(settings: Settings) {
   if (!user) return;
 
   await setDoc(
-    doc(db, "schoolFestProUsers", user.uid, "appData", "settings"),
+    userDocument(user.uid, "appData", "settings"),
     settings
   );
 }
@@ -19,7 +20,7 @@ export async function loadSettings() {
   if (!user) return null;
 
   const snap = await getDoc(
-    doc(db, "schoolFestProUsers", user.uid, "appData", "settings")
+    userDocument(user.uid, "appData", "settings")
   );
 
   return snap.exists() ? snap.data() : null;

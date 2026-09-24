@@ -28,7 +28,7 @@ export async function checkCurrentUserAccess(user: User): Promise<AccessCheck> {
     appId: FIREBASE_APP_ID,
     allowed: data.allowed === true,
     canonicalPath: `accessUsers/${user.uid}`,
-    protectedPath: `schoolFestProUsers/${user.uid}`,
+    protectedPath: `apps/schoolFestPro/users/${user.uid}`,
   });
 
   return {

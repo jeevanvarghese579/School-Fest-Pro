@@ -2,6 +2,7 @@ import { getAllLocalData, resetAllDataEverywhere, restoreAllLocalData } from '..
 import { useState } from 'react';
 import { Copy, Check, Trash2, Download, Upload, AlertCircle, ExternalLink, Mail, Globe, FileSpreadsheet, Loader2 } from 'lucide-react';
 import appIcon from '../assets/app-icon.svg';
+import { APP_KEY } from '../services/firebasePaths';
 
 const DEVELOPER_EMAIL = 'jeevanvarghese579@gmail.com';
 const DEVELOPER_WEBSITE = 'https://itsjeevanvarghese.web.app/';
@@ -28,6 +29,7 @@ const handleReset = async () => {
 
   const handleBackup = () => {
     const backup = {
+      appKey: APP_KEY,
       ...getAllLocalData(),
       backupDate: new Date().toISOString(),
       version: '2.0.7',
@@ -52,6 +54,10 @@ const handleReset = async () => {
 
         if (!backup.version) {
           alert('Invalid backup file. Please select a valid SchoolFest backup.');
+          return;
+        }
+        if (backup.appKey !== undefined && backup.appKey !== APP_KEY) {
+          alert('This backup belongs to a different application.');
           return;
         }
 

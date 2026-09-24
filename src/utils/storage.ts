@@ -1,5 +1,6 @@
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { auth } from '../firebase';
+import { userDocument } from '../services/firebasePaths';
 import type { Student, House, Item, IndividualParticipation, GroupItem, Settings, Result, ScheduleItem } from '../types';
 
 export const DEFAULT_SCORESHEETS_PDF_URL =
@@ -23,7 +24,6 @@ const LOCAL_DATABASE = 'schoolfest-pro-local';
 const LOCAL_STORE = 'workspaces';
 const LOCAL_PROFILE_KEY = 'schoolfest_local_profile_id';
 const FALLBACK_PREFIX = 'schoolfest_workspace_fallback:';
-const CLOUD_ROOT = 'schoolFestProUsers';
 const CLOUD_DOC_PATH = 'main';
 
 let activeScope = '';
@@ -175,7 +175,7 @@ export async function syncLocalDataToCloud() {
   if (!user || !cloudAccessApproved || activeScope !== `firebase:${user.uid}`) return false;
 
   await setDoc(
-    doc(db, CLOUD_ROOT, user.uid, 'data', CLOUD_DOC_PATH),
+    userDocument(user.uid, 'data', CLOUD_DOC_PATH),
     { ...getAllLocalData(), schemaVersion: 2, updatedAt: serverTimestamp() },
     { merge: true },
   );
@@ -186,11 +186,7 @@ export async function loadCloudDataToLocal() {
   const user = auth.currentUser;
   if (!user || !cloudAccessApproved || activeScope !== `firebase:${user.uid}`) return false;
 
-  let snap = await getDoc(doc(db, CLOUD_ROOT, user.uid, 'data', CLOUD_DOC_PATH));
-  if (!snap.exists()) {
-    const legacy = await getDoc(doc(db, 'users', user.uid, 'schoolFestData', CLOUD_DOC_PATH));
-    if (legacy.exists()) snap = legacy;
-  }
+  const snap = await getDoc(userDocument(user.uid, 'data', CLOUD_DOC_PATH));
 
   if (!snap.exists()) {
     const localId = localStorage.getItem(LOCAL_PROFILE_KEY);
@@ -217,9 +213,6 @@ export async function loadCloudDataToLocal() {
   };
   await writeWorkspace();
 
-  // Copy a successfully read legacy document into the new app-specific root.
-  if (!snap.ref.path.startsWith(CLOUD_ROOT)) await syncLocalDataToCloud();
-
   return true;
 }
 
@@ -230,7 +223,7 @@ export async function resetAllDataEverywhere() {
   await writeWorkspace();
 
   if (user && cloudAccessApproved && activeScope === `firebase:${user.uid}`) {
-    await deleteDoc(doc(db, CLOUD_ROOT, user.uid, 'data', CLOUD_DOC_PATH));
+    await deleteDoc(userDocument(user.uid, 'data', CLOUD_DOC_PATH));
   }
 }
 
