@@ -8,7 +8,7 @@ export async function saveSettings(settings: Settings) {
   if (!user) return;
 
   await setDoc(
-    doc(db, "schoolFestProUsers", user.uid, "appData", "settings"),
+    doc(db, "apps", "schoolFestPro", "users", user.uid, "appData", "settings"),
     settings
   );
 }
@@ -19,7 +19,7 @@ export async function loadSettings() {
   if (!user) return null;
 
   const snap = await getDoc(
-    doc(db, "schoolFestProUsers", user.uid, "appData", "settings")
+    doc(db, "apps", "schoolFestPro", "users", user.uid, "appData", "settings")
   );
 
   return snap.exists() ? snap.data() : null;
