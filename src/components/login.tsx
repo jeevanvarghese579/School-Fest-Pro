@@ -126,8 +126,10 @@ function Login({ user, access, error: accessError, busy, onContinueOffline, onRe
             {pending ? (
               <button onClick={checkAgain} disabled={busy || authBusy} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-lg">Check Again</button>
             ) : (
-              <button onClick={() => onRequestAccess(newAccount ? 'new-account' : 'access-request')} disabled={busy || authBusy || rejected} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-lg">Request Access</button>
+              <button onClick={() => { if (window.confirm('Send an access request to the administrator?')) void onRequestAccess(newAccount ? 'new-account' : 'access-request'); }} disabled={busy || authBusy || rejected} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-lg">Request Access</button>
             )}
+
+            <a href="https://itsjeevanvarghese.web.app/contact" target="_blank" rel="noopener noreferrer" className="block w-full text-center text-blue-700 font-semibold py-2 hover:underline">Contact developer</a>
 
             {!user.emailVerified && access?.requireEmailVerification && (
               <button onClick={resendVerification} disabled={authBusy} className="w-full border border-blue-300 text-blue-700 font-semibold py-3 rounded-lg hover:bg-blue-50">Send Verification Email</button>
